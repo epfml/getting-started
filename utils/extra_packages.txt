@@ -1,0 +1,17 @@
+numpy
+scipy
+pandas
+ipython
+ipykernel
+jupyter
+jupyterlab
+tqdm
+pyyaml
+matplotlib
+seaborn
+black
+black-jupyter
+pylint
+scikit-learn
+networkx
+kubernetes
