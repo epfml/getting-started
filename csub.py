@@ -156,7 +156,7 @@ spec:
           args: [
               "/bin/bash",
               "-c",
-              "{args.command}",
+              "source ~/.zshrc && {args.command}",
           ]
           env:
             - name: HOME
