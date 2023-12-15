@@ -23,8 +23,10 @@ If you have any questions about the cluster or the setup, please reach out to an
     sudo mv ./kubectl /usr/local/bin/kubectl
     sudo chown root: /usr/local/bin/kubectl
 ``` 
-1. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
-2. Install the RunAI CLI:
+
+3. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
+
+4. Install the RunAI CLI:
    ```bash
       # Sketch for macOS with Apple Silicon
       # Download the CLI from the link shown in the help section.
@@ -34,7 +36,7 @@ If you have any questions about the cluster or the setup, please reach out to an
       sudo mv ./runai /usr/local/bin/runai
       sudo chown root: /usr/local/bin/runai
    ```
-3. Switch between contexts and login to both clusters:
+5. Switch between contexts and login to both clusters:
    ```bash
       # Switch to the IC cluster
       runai config cluster ic-cluster
@@ -50,7 +52,7 @@ If you have any questions about the cluster or the setup, please reach out to an
       runai list projects
       runai config project mlo-$GASPAR_USERNAME
    ```
-4. Run a quick test to see that you can launch jobs:
+6. Run a quick test to see that you can launch jobs:
    ```bash
       # Try to submit a job that mounts our shared storage and see its content.
       runai submit \
@@ -68,9 +70,9 @@ If you have any questions about the cluster or the setup, please reach out to an
       runai delete jobs setup-test
     ```
 
-The `runai submit` command already suffices to run jobs. Remember that you can switch between the two contexts of the IC cluster and RCP cluster (e.g. if you need a 80GB A100 GPU, use the RCP cluster) with the command `runai config cluster <cluster-name>` as shown above. See the 
+The `runai submit` command already suffices to run jobs. Remember that you can switch between the two contexts of the IC cluster and RCP cluster (e.g. if you need a 80GB A100 GPU, use the RCP cluster) with the command `runai config cluster <cluster-name>` as shown above. 
 
-However, we provide a few scripts in this repository to make your life easier to get started. 
+**Start a simple notebook.** However, we provide a few scripts in this repository to make your life easier to get started. 
 
 1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml` but <ins>**do not modify the template**</ins>.
 
@@ -81,7 +83,10 @@ However, we provide a few scripts in this repository to make your life easier to
 python csub.py --n sandbox -g 1 -t 7d -i ic-registry.epfl.ch/mlo/mlo:v1 --command "cd /mloscratch/homes/<your username>; pip install jupyter && jupyter notebook"
 ```
 
-4. Wait until the pod has a 'running' status. Check the status of the job with `runai describe job sandbox`. This can take a bit (max ~3 min or so).
+4. Wait until the pod has a 'running' status -- this can take a bit (max ~3 min or so). Check the status of the job with 
+```bash
+runai describe job sandbox
+```
 
 5. When it is running, get the logs and the link for the notebook with 
 ```bash
