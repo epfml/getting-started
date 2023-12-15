@@ -46,6 +46,7 @@ for index in ${!target_array[*]}; do
       /bin/bash ~/miniconda.sh -b -p ${target_array[$index]}
       rm -rf ~/miniconda.sh
       ${target_array[$index]}/bin/conda init zsh
+      source ~/.zshrc
 
     else # create the dir or file
       # if possible, copy from /docker/ (which has e.g. oh-my-zsh installed)
