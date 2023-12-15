@@ -1,6 +1,4 @@
 # MLO: Getting started with the EPFL Clusters
-**WARNING:** work in progress, currently updating this
-
 This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both IC and RCP), with a simple setup and scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and scripts created by Atli Kosson :)
 
 There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The IC cluster is equipped with V100 (32GB RAM) and A100 (40GB RAM) GPUs, while the RCP cluster has A100 (80GB) GPUs. You can switch between the two clusters and their respective GPUs.
@@ -9,7 +7,8 @@ There are two clusters available to us: the IC cluster (department only) and the
 
 If you have any questions about the cluster or the setup, please reach out to any of your colleagues. For specific problems, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
 
-## Minimal step-by-step instructions to quickly get a notebook running
+## Minimal basic setup
+The step-by-step instructions for first time users to quickly get a notebook running:
 
 1. Ask Jennifer to add you to the group `runai-mlo` and potentially `rcp-runai-mlo` (for the RCP cluster): https://groups.epfl.ch/ 
 
@@ -72,13 +71,13 @@ If you have any questions about the cluster or the setup, please reach out to an
 
 The `runai submit` command already suffices to run jobs. Remember that you can switch between the two contexts of the IC cluster and RCP cluster (e.g. if you need a 80GB A100 GPU, use the RCP cluster) with the command `runai config cluster <cluster-name>` as shown above. 
 
-**Start a simple notebook.** However, we provide a few scripts in this repository to make your life easier to get started. 
+**Start a notebook server.** However, we provide a few scripts in this repository to make your life easier to get started. 
 
 1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml` but <ins>**do not modify the template**</ins>.
 
 2. Fill in `user.yaml` your username, userID and groupID in `user.yaml`. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. There's also a field for wandb API key to fill out.
    
-3. Create a pod with 1 GPU which expires in 7 days and uses the image stored at [link](https://ic-registry.epfl.ch/harbor/projects/33/repositories/tml%2Ftml). You may need to install pyyaml with `pip install pyyaml` first.
+3. Create a pod with 1 GPU which expires in 7 days and uses the image stored at [link](https://ic-registry.epfl.ch/harbor/projects/33/repositories/tml%2Ftml) (you may need to install pyyaml with `pip install pyyaml` first).
 ```bash
 python csub.py --n sandbox -g 1 -t 7d -i ic-registry.epfl.ch/mlo/mlo:v1 --command "cd /mloscratch/homes/<your username>; pip install jupyter && jupyter notebook"
 ```
@@ -98,18 +97,25 @@ kubectl logs sandbox-0-0
 kubectl port-forward sandbox-0-0 8888:8888
 ```
 
-7. If everything worked correctly, you should be able to open the link from the logs in your browser and see the notebook! 
+7. If everything worked correctly, you should be able to open the link from the logs in your browser and see the notebook! A nice alternative setup is to attach VSCode to the pod, see [this section](#using-vscode) for more details.
 
 
-**Important notes:**
-* The default job is just an interactive one (with `sleep`) that you can use for development. 
-  * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 24 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
-* For a training job, use the flag `--train`, and replace the command with your training command. 
-* Work within `/mloscratch`. This is the shared storage that is mounted to your pod. See [File storage](#file-storage) for more details.
-* Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
+## Using the python script to launch jobs
+The python script `csub.py` is a wrapper around the RunAI CLI that makes it easier to launch jobs. It is meant to be used for both interactive jobs (e.g. notebooks) and training jobs.
+General usage:
+
+```bash
+python csub.py --n <job_name> -g <number of GPUs> -t <time> -i <docker image> --command <command> [--train]
+```
+Check the arguments for the script to see what they do.
+
+What this repository does on first run:
+- We provide a default MLO docker image `mlo/mlo:v1` that should work for most use cases. If you use this default image, the first time you run `csub.py`, it will create a working directory with your username inside `/mloscratch/homes`. Moreover, for each symlink you find the `user.yaml` file the script will create the respective file/folder inside `mloscratch` and link it to the home folder of the pod. This is to ensure that these files and folders are persistent across different pods. 
+- The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
+- Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
 
 ## Managing pods
-To manage your pods you can use RunAI and the following commands: 
+After starting pods with the script, you can manage your pods using RunAI and the following commands: 
 ``` bash
 runai exec pod_name -it -- zsh # - opens an interactive shell on the pod 
 runai delete job pod_name # kills the job and removes it from the list of jobs
@@ -118,19 +124,19 @@ runai list jobs # list all jobs and their status
 runai logs pod_name # shows the output/logs for the job
 ``` 
 
-## What this repository does (first time access)
 
-- We provide a default MLO docker image `mlo/mlo:v1` that should work for most use cases. If you use this default image, the first time you run `csub.py`, it will create a working directory with your username inside `/mloscratch/homes`. Moreover, for each symlink you find the `user.yaml` file the script will create the respective file/folder inside `mloscratch` and link it to the home folder of the pod. This is to ensure that these files and folders are persistent across different pods. 
-- The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
-- Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
+## Important notes and suggested workflow: 
+* The default job is just an interactive one (with `sleep`) that you can use for development. 
+  * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 24 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
+* For a training job, use the flag `--train`, and replace the command with your training command. 
+* Work within `/mloscratch`. This is the shared storage that is mounted to your pod. See [File storage](#file-storage) for more details.
+* Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
 
 
-## Suggested workflow: 
-This is one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course.
- - CPU-only pods are cheap, approx 3 CHF/month, so we recommend creating a CPU-only machine that you can let run for the entire duration of a project and that you use for code development/debugging through VSCODE.
- - When your code is ready and you want to run some experiments or you need to debug on GPU, you can create one or more new pods with GPU (multiple pods with 1 GPU are easier to get than one pod with multiple GPUs). Simply specify the command in the python launch script.
- -  This makes sure that you kill the pod when your code/experiment is finished in order to save money.
- -  Remember to work on mloscratch so that your code will be shared across all your pods and stored.
+This repo and script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. Nonetheless, keep these things in mind:
+- CPU-only pods are cheap, approx 3 CHF/month, so we recommend creating a CPU-only machine that you can let run for the entire duration of a project and that you use for code development/debugging through VSCODE.
+- When your code is ready and you want to run some experiments or you need to debug on GPU, you can create one or more new pods with GPU (multiple pods with 1 GPU are easier to get than one pod with multiple GPUs). Simply specify the command in the python launch script.
+-  This makes sure that you kill the pod when your code/experiment is finished in order to save money.
 
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
@@ -138,6 +144,7 @@ To easily attach a VSCODE window to a pod we recommend the following steps:
 2. From your VSCODE window, click on Kubernetes -> ic-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
 3. Right-click on the pod you want to access and select `Attach Visual Studio Code`, this will start a vscode session attached to your pod.
 4. The symlinks ensure that settings and extensions are stored in `mloscratch/homes/<gaspar username>` and therefore shared across pods.
+  
 
 &nbsp;
 &nbsp;
