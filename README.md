@@ -297,7 +297,7 @@ docker push ic-registry.epfl.ch/mlo/<your-tag>
 If you want to access a port on your pod from your local machine, you can use port forwarding. For example, if you want to access a jupyter notebook running on your pod, you can do the following:
 ```bash
 kubectl get pods
-kubectl port-forward sandbox-0-0 8888:8888
+kubectl port-forward <pod_name> 8888:8888
 ```
 
 
