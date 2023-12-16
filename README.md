@@ -5,7 +5,7 @@ There are two clusters available to us: the IC cluster (department only) and the
 
 If you have any questions about the cluster or the setup, please reach out to any of your colleagues. 
 
-For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
+For specific problems and errors you think yout should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
 
 ## Minimal basic setup
 The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
@@ -66,7 +66,7 @@ The step-by-step instructions for first time users to quickly get a notebook run
       runai logs setup-test-storage
 
       # Delete the successful jobs
-      runai delete jobs setup-test
+      runai delete jobs setup-test-storage
     ```
 
 The `runai submit` command already suffices to run jobs. If that is fine for you, you can jump to the section on using provided images and the run:ai CLI [here](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages).
