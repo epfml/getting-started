@@ -156,6 +156,7 @@ spec:
           args: [
               "/bin/bash",
               "-c",
+              # zshrc is just loaded to have some env variables ready
               "source ~/.zshrc && {args.command}",
           ]
           env:

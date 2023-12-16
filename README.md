@@ -1,11 +1,11 @@
 # MLO: Getting started with the EPFL Clusters
-This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both IC and RCP), with a simple setup and scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and scripts created by Atli Kosson :)
+This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both IC and RCP) -- so that you don't have to go through the countless documentations by yourself! We also provide scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and CLAIRE, and scripts created by Atli :)
 
-There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The IC cluster is equipped with V100 (32GB RAM) and A100 (40GB RAM) GPUs, while the RCP cluster has A100 (80GB) GPUs. You can switch between the two clusters and their respective GPUs.
+There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The IC cluster is equipped with V100 (32GB) and A100 (40GB) GPUs, while the RCP cluster has A100 (80GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
 
-<!-- The main idea is to use docker containers (kubernetes pods) to run experiments. They are non-permanent and the compute is shared with other users -->
+If you have any questions about the cluster or the setup, please reach out to any of your colleagues. 
 
-If you have any questions about the cluster or the setup, please reach out to any of your colleagues. For specific problems, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
+For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
 
 ## Minimal basic setup
 The step-by-step instructions for first time users to quickly get a notebook running:
@@ -25,7 +25,7 @@ The step-by-step instructions for first time users to quickly get a notebook run
 
 3. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
 
-4. Install the RunAI CLI:
+4. Install the run:ai CLI:
    ```bash
       # Sketch for macOS with Apple Silicon
       # Download the CLI from the link shown in the help section.
@@ -35,7 +35,7 @@ The step-by-step instructions for first time users to quickly get a notebook run
       sudo mv ./runai /usr/local/bin/runai
       sudo chown root: /usr/local/bin/runai
    ```
-5. Switch between contexts and login to both clusters:
+5. Switch between contexts and login to both clusters.
    ```bash
       # Switch to the IC cluster
       runai config cluster ic-cluster
@@ -69,9 +69,11 @@ The step-by-step instructions for first time users to quickly get a notebook run
       runai delete jobs setup-test
     ```
 
-The `runai submit` command already suffices to run jobs. Remember that you can switch between the two contexts of the IC cluster and RCP cluster (e.g. if you need a 80GB A100 GPU, use the RCP cluster) with the command `runai config cluster <cluster-name>` as shown above. 
+The `runai submit` command already suffices to run jobs. If that is fine for you, you can jump to the section on using provided images and the run:ai CLI [here](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages).
 
-**Start a notebook server.** However, we provide a few scripts in this repository to make your life easier to get started. 
+However, we provide a few scripts in this repository to make your life easier to get started. 
+
+**Use this repo to start a notebook:**
 
 1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml` but <ins>**do not modify the template**</ins>.
 
@@ -82,17 +84,17 @@ The `runai submit` command already suffices to run jobs. Remember that you can s
 python csub.py --n sandbox -g 1 -t 7d -i ic-registry.epfl.ch/mlo/mlo:v1 --command "cd /mloscratch/homes/<your username>; pip install jupyter && jupyter notebook"
 ```
 
-4. Wait until the pod has a 'running' status -- this can take a bit (max ~3 min or so). Check the status of the job with 
+4. Wait until the pod has a 'running' status -- this can take a bit (max ~5 min or so). Check the status of the job with 
 ```bash
 runai describe job sandbox
 ```
 
-5. When it is running, get the logs and the link for the notebook with 
+5. When it is running, get the logs. Wait until you see the link for the notebook with 
 ```bash
 kubectl logs sandbox-0-0
 ```
 
-6. Then enable port-forwarding via
+6. Once you have the link, enable port-forwarding via
 ```bash 
 kubectl port-forward sandbox-0-0 8888:8888
 ```
@@ -100,12 +102,16 @@ kubectl port-forward sandbox-0-0 8888:8888
 7. If everything worked correctly, you should be able to open the link from the logs in your browser and see the notebook! A nice alternative setup is to attach VSCode to the pod, see [this section](#using-vscode) for more details.
 
 
+You're good to go :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
+Remember that you can switch between the two contexts of the IC cluster and RCP cluster with the command `runai config cluster <cluster-name>` as shown above -- for example, if you need a 80GB A100 GPU, use the RCP cluster. 
+
+
 ## Using the python script to launch jobs
-The python script `csub.py` is a wrapper around the RunAI CLI that makes it easier to launch jobs. It is meant to be used for both interactive jobs (e.g. notebooks) and training jobs.
+The python script `csub.py` is a wrapper around the run:ai CLI that makes it easier to launch jobs. It is meant to be used for both interactive jobs (e.g. notebooks) and training jobs.
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> -i <docker image> --command <command> [--train]
+python csub.py --n <job_name> -g <number of GPUs> -t <time> -i <docker image> --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
@@ -115,17 +121,19 @@ What this repository does on first run:
 - Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
 
 ## Managing pods
-After starting pods with the script, you can manage your pods using RunAI and the following commands: 
+After starting pods with the script, you can manage your pods using run:ai and the following commands: 
 ``` bash
 runai exec pod_name -it -- zsh # - opens an interactive shell on the pod 
 runai delete job pod_name # kills the job and removes it from the list of jobs
 runai describe job pod_name # shows information on the status/execution of the job
 runai list jobs # list all jobs and their status 
 runai logs pod_name # shows the output/logs for the job
+runai config cluster ic-context # switch to IC cluster context
+runai config cluster rcp-context # switch to RCP cluster context
 ``` 
 
 
-## Important notes and suggested workflow: 
+## Important notes and possible workflow: 
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
   * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 24 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
 * For a training job, use the flag `--train`, and replace the command with your training command. 
@@ -141,24 +149,45 @@ This repo and script is just one suggested workflow that tries to maximize produ
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
 1. Install the [Kubernetes](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extensions.
-2. From your VSCODE window, click on Kubernetes -> ic-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
+2. From your VSCODE window, click on Kubernetes -> ic-cluster/rcp-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
 3. Right-click on the pod you want to access and select `Attach Visual Studio Code`, this will start a vscode session attached to your pod.
 4. The symlinks ensure that settings and extensions are stored in `mloscratch/homes/<gaspar username>` and therefore shared across pods.
-  
+
+You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/how-to-vscode).
+
+
+## Quick links
+
+IC Cluster
+ * Docs: https://icitdocs.epfl.ch/display/clusterdocs/IC+Cluster+Documentation
+ * Dashboard: https://epfl.run.ai
+ * Docker registry: https://ic-registry.epfl.ch/harbor/projects
+ * Getting started guide: https://icitdocs.epfl.ch/display/clusterdocs/Getting+Started+with+RunAI
+
+RCP Cluster
+ * RCP main page: https://www.epfl.ch/research/facilities/rcp/
+ * Docs: https://wiki.rcp.epfl.ch
+ * Dashboard: https://rcpepfl.run.ai
+ * Docker registry: https://registry.rcp.epfl.ch/
+ * Getting started guide: https://wiki.rcp.epfl.ch/en/home/CaaS/Quick_Start
+
+run:ai docs: https://docs.run.ai
+
+If you want to read up more on the cluster, you can checkout a great in-depth guide by our colleagues at CLAIRE. They have a similar setup of compute and storage: 
+* [Compute and Storage @ CLAIRE](https://prickly-lip-484.notion.site/Compute-and-Storage-CLAIRE-91b4eddcc16c4a95a5ab32a83f3a8294#)
 
 &nbsp;
 &nbsp;
 &nbsp;
 &nbsp;
-
 ---
 &nbsp;
 &nbsp;
 &nbsp;
 &nbsp;
 
-# More background on the cluster usage, RunAI and the scripts
-We go through a few more details on the cluster usage, RunAI and the scripts in this section, and provide alternative ways to use the cluster.
+# More background on the cluster usage, run:ai and the scripts
+We go through a few more details on the cluster usage, run:ai and the scripts in this section, and provide alternative ways to use the cluster.
 
 ## File storage
 In principle, any file created inside a pod will be deleted when the pod is killed. To store files permanently, you need to mount network disks to your pod. In our case, this is `scratch` -- all code and experimentation should be stored there. It is meant to be accessed by experiment pods.
@@ -181,8 +210,8 @@ The volumes are mounted inside the folders `/mnt/mlo/mlodata1`, `/mnt/mlo/mloraw
 
 **TODO:** Update with permanent machine for MLO once we have it.
 
-## Alternative workflow: using the RunAI CLI and base docker images with pre-installed packages
-The setup in this repository is just one way of running and managing the cluster. You can also use the RunAI CLI directly, or use the scripts in this repository as a starting point for your own setup.
+## Alternative workflow: using the run:ai CLI and base docker images with pre-installed packages
+The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup.
 
 Thijs created a crash course with the main overview for the cluster with [these slides](https://docs.google.com/presentation/d/1n_yimybA3SbdnpMapyAMhA00lq_SN0BMHU_Ji-7mr2w/edit#slide=id.p). Additionally, he created a few base docker images with pre-installed packages:
   * mlo/basic: numpy, jupyter, ...
@@ -191,26 +220,25 @@ Thijs created a crash course with the main overview for the cluster with [these 
   * mlo/tensorflow: basic + computer vision + tensorflow
   * mlo/latex: basic + texlive
 
-To update these, go to https://github.com/epfml/mlocluster-setup. Run `publish.sh` in `docker-images/`. 
+To update these, go to https://github.com/epfml/mlocluster-setup. Run `publish.sh` in `docker-images/`. To extend them or make your own: follow a Docker tutorial, or check [the section below](#creating-a-custom-docker-image).
 
-To extend them or make your own: follow a Docker tutorial, or check [the section below](#creating-a-custom-docker-image).
 
-**NOTE**: These base images are not compatible with the python script in this repository. The reason is that this python script is set up to use your GASPAR user id and group id as the main user in the docker image. Thijs' images use the root user and have the GASPAR user on top; you can still use the python script, but you need to modify it to use the correct user id and group id.
+The following description is taken from Thijs' slides and notes:
 
 **Running an interactive session (for development / playing around)**
 
 Examples:
- * RunAI CLI
+ * run:ai CLI
 ```bash
 runai submit \
-		--name sandbox \
-		--interactive \ 
-		--gpu 1 \
-		--image ic-registry.epfl.ch/mlo/pytorch:latest \ # or any other image
-		--pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \ # mount scratch
-		--large-shm --host-ipc \ # just some optimization
-		--environment EPFML_LDAP=$GASPAR_USERNAME \ # environment variables
-		--command -- /entrypoint.sh sleep infinity # keeps the pod runnning until killed
+  --name sandbox \
+  --interactive \ 
+  --gpu 1 \
+  --image ic-registry.epfl.ch/mlo/pytorch:latest \ # or any other image
+  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \ # mount scratch
+  --large-shm --host-ipc \ # just some optimization
+  --environment EPFML_LDAP=$GASPAR_USERNAME \ # environment variables
+  --command -- /entrypoint.sh sleep infinity # keeps the pod runnning until killed
 ```
 
 Wait until the pod has status RUNNING. This can take a while (10 min or so).
@@ -225,19 +253,23 @@ runai exec sandbox -it -- su $GASPAR_USERNAME
 
 The `'su $GASPAR_USERNAME'` gives you a shell running under your user account, allowing you to access network storage. While your user can access /mloscratch, the root user cannot.
 
+**NOTE**: These base images are not compatible with the python script in this repository. The reason is that this python script is set up to use your GASPAR user id and group id as the main user in the docker image. Thijs' images use the root user and have the GASPAR user on top; you can still use the python script, but you need to modify it to use the correct user id and group id.
+
 ## Running a job (for experiments)
-Simply replace the command in the RunAI CLI example above with your command. For example, to run a python script:
+[[Minimal cifar example including logging to wandb]](https://github.com/epfml/cifar/tree/wandb)
+
+Simply replace the command in the run:ai CLI example above with your command. For example, to run a python script:
 ```bash
 runai submit \
-		--name experiment-hyperparams-1 \
-		--gpu 1 \
-		--image ic-registry.epfl.ch/mlo/pytorch:latest \
-		--pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
-		--large-shm --host-ipc \
-		--environment EPFML_LDAP=$GASPAR_USERNAME \
-		--environment LEARNING_RATE=0.5 \
-		--environment OPTIMIZER=Adam \
-		--command -- /entrypoint.sh su $GASPAR_USERNAME -c 'cd code_dir && python train.py'
+  --name experiment-hyperparams-1 \
+  --gpu 1 \
+  --image ic-registry.epfl.ch/mlo/pytorch:latest \
+  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
+  --large-shm --host-ipc \
+  --environment EPFML_LDAP=$GASPAR_USERNAME \
+  --environment LEARNING_RATE=0.5 \
+  --environment OPTIMIZER=Adam \
+  --command -- /entrypoint.sh su $GASPAR_USERNAME -c 'cd code_dir && python train.py'
 ```
 Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
 
@@ -245,7 +277,7 @@ Remember that your job can get killed anytime if run:ai needs to make space for 
 ## Creating a custom docker image
 In case you want to customize it and create your own docker image, follow these steps:
 - **Request registry access**: This step is needed to push your own docker images in the container. Try login here https://ic-registry.epfl.ch/ and see if you see members inside the MLO project. The groups of runai are already added, it should work already. If not, reach out to Alex or a colleague.
- - **Install Docker:** `brew install --cask docker` (or any other preferred way according to the docker website). If when you execute commands via terminal you see an error '“Cannot connect to the Docker daemon”' try running docker via GUI the first time and then the commands should work.
+ - **Install Docker:** `brew install --cask docker` (or any other preferred way according to the docker website). When you execute commands via terminal and you see an error '“Cannot connect to the Docker daemon”', try running docker via GUI the first time and then the commands should work.
  - **Login registry:** `docker login ic-registry.epfl.ch` and use your GASPAR credentials. Same for the RCP cluster: `docker login registry.rcp.epfl.ch` (but we're currently not using it).
  - **Modify Dockerfile:** 
    - The repo contains a template Dockerfile that you can modify in case you need a custom image 
@@ -270,35 +302,22 @@ kubectl port-forward sandbox-0-0 8888:8888
 
 
 ## File overview of this repository
-```
+```bash
 ├── utils
     ├── entrypoint.sh             # Sets up credentials and symlinks
     ├── conda.sh                  # Conda installation   
     └── extra_packages.txt        # Extra python packages you want to install 
-├── csub.py                       # Creates a pod through RunAI; you can specify the number of GPUS, CPUS, docker image and time 
+├── csub.py                       # Creates a pod through run:ai; you can specify the number of GPUS, CPUS, docker image and time 
 ├── templates
-    ├── user.yaml                 # Template for your user file COPY IT, DO NOT CHANGE IT
+    ├── user_template.yaml                 # Template for your user file COPY IT, DO NOT CHANGE IT
 ├── Dockerfile                    # Dockerfile example  
 ├── publish.sh                    # Script to push the docker image in the registry
+├── kubeconfig.yaml               # Kubeconfig that you should store in ~/.kube/config
 └── README.md
 ```
 
-## Quick links
-
-IC Cluster
- * Docs: https://icitdocs.epfl.ch/display/clusterdocs/IC+Cluster+Documentation
- * Dashboard: https://epfl.run.ai
- * Docker registry: https://ic-registry.epfl.ch/harbor/projects
-
-RCP Cluster
- *  Docs: https://wiki.rcp.epfl.ch
- *  Dashboard: https://rcpepfl.run.ai
- *  Docker registry: https://registry.rcp.epfl.ch/
-
-RunAI docs: https://docs.run.ai
-
-### Other cluster-related code repositories
-We use these repositories to manage shared compute infrastructure. If you want to contribute, please ask Martin to add you as an editor.
+## Other cluster-related code repositories
+These repositories are mostly by previous PhDs. They used these repositories to manage shared compute infrastructure. If you want to contribute, please ask Martin to add you as an editor.
 * [epfml/epfml-utils](https://github.com/epfml/epfml-utils)
   * Python package (pip install epfml-utils) for shared tooling.
 * [epfml/mlocluster-setup](https://github.com/epfml/mlocluster-setup)
