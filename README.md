@@ -8,7 +8,7 @@ If you have any questions about the cluster or the setup, please reach out to an
 For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
 
 ## Minimal basic setup
-The step-by-step instructions for first time users to quickly get a notebook running:
+The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
 
 1. Ask Jennifer to add you to the group `runai-mlo` and potentially `rcp-runai-mlo` (for the RCP cluster): https://groups.epfl.ch/ 
 
