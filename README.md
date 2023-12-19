@@ -5,7 +5,7 @@ There are two clusters available to us: the IC cluster (department only) and the
 
 If you have any questions about the cluster or the setup, please reach out to any of your colleagues. 
 
-For specific problems and errors you think yout should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
+For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
 
 ## Minimal basic setup
 The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
@@ -120,6 +120,8 @@ What this repository does on first run:
 - The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
 - Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
 
+If you want to have another workflow, you can also directly use the run:ai CLI together with other docker images. See [this section](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages) for more details.
+
 ## Managing pods
 After starting pods with the script, you can manage your pods using run:ai and the following commands: 
 ``` bash
@@ -133,18 +135,18 @@ runai config cluster rcp-context # switch to RCP cluster context
 ``` 
 
 
-## Important notes and possible workflow: 
+## Important notes and possible workflow
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
   * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 24 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
 * For a training job, use the flag `--train`, and replace the command with your training command. 
 * Work within `/mloscratch`. This is the shared storage that is mounted to your pod. See [File storage](#file-storage) for more details.
+  * Specifically, use a GitHub repo to store your code and clone it inside your folder on `/mloscratch`.
 * Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
-
 
 This repo and script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. Nonetheless, keep these things in mind:
 - CPU-only pods are cheap, approx 3 CHF/month, so we recommend creating a CPU-only machine that you can let run for the entire duration of a project and that you use for code development/debugging through VSCODE.
 - When your code is ready and you want to run some experiments or you need to debug on GPU, you can create one or more new pods with GPU (multiple pods with 1 GPU are easier to get than one pod with multiple GPUs). Simply specify the command in the python launch script.
--  This makes sure that you kill the pod when your code/experiment is finished in order to save money.
+-  Using a training job makes sure that you kill the pod when your code/experiment is finished in order to save money.
 
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
@@ -176,10 +178,6 @@ run:ai docs: https://docs.run.ai
 If you want to read up more on the cluster, you can checkout a great in-depth guide by our colleagues at CLAIRE. They have a similar setup of compute and storage: 
 * [Compute and Storage @ CLAIRE](https://prickly-lip-484.notion.site/Compute-and-Storage-CLAIRE-91b4eddcc16c4a95a5ab32a83f3a8294#)
 
-&nbsp;
-&nbsp;
-&nbsp;
-&nbsp;
 ---
 &nbsp;
 &nbsp;
