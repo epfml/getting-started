@@ -46,6 +46,14 @@ parser.add_argument(
     help="The number of CPUs requested (default 4)",
 )
 parser.add_argument(
+    "--memory",
+    type=str,
+    default="4G",
+    required=False,
+    help="The minimum amount of CPU memory (default 4G). must match regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'",
+)
+# TODO: add gpu memory or GPU selection argument
+parser.add_argument(
     "-i",
     "--image",
     type=str,
@@ -106,9 +114,9 @@ if __name__ == "__main__":
         args.command = f"sleep {args.time}"
 
     if args.train:
-        comment_out_priority = "#"  # comment
+        workload_kind = "TrainingWorkload"
     else:
-        comment_out_priority = ""
+        workload_kind = "InteractiveWorkload"
 
     working_dir = user_cfg["working_dir"]
     symlink_targets, symlink_destinations = zip(*user_cfg["symlinks"].items())
@@ -122,88 +130,73 @@ if __name__ == "__main__":
         ]
     )
     symlink_types = ":".join([dest[0] for dest in symlink_destinations])
-
     cfg = f"""
-# Source: runaijob/templates/runai-job.yaml
-apiVersion: run.ai/v1
-kind: RunaiJob
+apiVersion: run.ai/v2alpha1
+kind: {workload_kind}
 metadata:
-  name: {args.name}
+  annotations:
+    runai-cli-version: 2.9.18
   labels:
-    {comment_out_priority}priorityClassName: "build" # Interactive Job if present, for Train Job REMOVE this line
-    user: {user_cfg['user']}
+    PreviousJob: "true"
+  name: {args.name}
+  namespace: runai-mlo-{user_cfg['user']}
 spec:
-  template:
-    metadata:
-      labels:
-        user: {user_cfg['user']}
-    spec:
-      hostIPC: true
-      schedulerName: runai-scheduler
-      restartPolicy: Never
-      securityContext:
-        runAsUser: {user_cfg['uid']}
-        runAsGroup: {user_cfg['gid']}
-      containers:
-        - name: {args.name}
-          image: {args.image}
-          imagePullPolicy: Always
-          workingDir: "/home/{user_cfg['user']}"
-          securityContext:
-            allowPrivilegeEscalation: true
-          stdin:
-          tty:
-          args: [
-              "/bin/bash",
-              "-c",
-              # zshrc is just loaded to have some env variables ready
-              "source ~/.zshrc && {args.command}",
-          ]
-          env:
-            - name: HOME
-              value: "/home/{user_cfg['user']}"
-            - name: NB_USER
-              value: {user_cfg['user']}
-            - name: NB_UID
-              value: "{user_cfg['uid']}"
-            - name: NB_GROUP
-              value: {user_cfg['group']}
-            - name: NB_GID
-              value: "{user_cfg['gid']}"
-            - name: WORKING_DIR
-              value: "{working_dir}"
-            - name: SYMLINK_TARGETS
-              value: "{symlink_targets}"
-            - name: SYMLINK_PATHS
-              value: "{symlink_paths}"
-            - name: SYMLINK_TYPES
-              value: "{symlink_types}"
-            - name: WANDB_API_KEY
-              value: {user_cfg['wandb_api_key']}
-            - name: EPFML_LDAP
-              value: {user_cfg['user']}
-          resources:
-            limits:
-              nvidia.com/gpu: {args.gpus}
-            requests: 
-              cpu: {args.cpus}
-          volumeMounts:
-            - mountPath: /mloscratch
-              name: mloscratch
-            - mountPath: /dev/shm  # Increase shared memory size
-              name: dshm
-          ports:
-            - protocol: 'TCP'
-              containerPort: 22
-      volumes:
-        - name: mloscratch
-          persistentVolumeClaim:
-            claimName: runai-mlo-{user_cfg['user']}-scratch
-        - name: dshm  # Increase the shared memory size
-          emptyDir:
-            medium: Memory
-      # nodeSelector:
-      #   run.ai/type: G10
+  name:
+    value: {args.name}
+  arguments: 
+      value: "/bin/zsh -c 'source ~/.zshrc && {args.command}'" # zshrc is just loaded to have some env variables ready
+  environment:
+    items:
+      HOME:
+        value: "/home/{user_cfg['user']}"
+      NB_USER:
+        value: {user_cfg['user']}
+      NB_UID:
+        value: "{user_cfg['uid']}"
+      NB_GROUP:
+        value: {user_cfg['group']}
+      NB_GID:
+        value: "{user_cfg['gid']}"
+      WORKING_DIR:
+        value: "{working_dir}"
+      SYMLINK_TARGETS:
+        value: "{symlink_targets}"
+      SYMLINK_PATHS:
+        value: "{symlink_paths}"
+      SYMLINK_TYPES:
+        value: "{symlink_types}"
+      WANDB_API_KEY:
+        value: {user_cfg['wandb_api_key']}
+      EPFML_LDAP:
+        value: {user_cfg['user']}
+  gpu:
+    value: "{args.gpus}"
+  cpu:
+    value: "{args.cpus}"
+  memory:
+    value: "{args.memory}"
+  image:
+    value: {args.image}
+  imagePullPolicy:
+    value: Always
+  pvcs:
+    items:
+      pvc--0:
+        value:
+          claimName: runai-mlo-{user_cfg['user']}-scratch
+          existingPvc: true
+          path: /mloscratch
+          readOnly: false
+  runAsGid:
+    value: {user_cfg['gid']}
+  runAsUid:
+    value: {user_cfg['uid']}
+  runAsUser: 
+    value: true    
+  serviceType:
+    value: ClusterIP
+  username:
+    value: {user_cfg['user']}
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
@@ -213,7 +206,7 @@ spec:
             print(cfg)
         else:
             result = subprocess.run(
-                ["kubectl", "create", "-f", f.name],
+                ["kubectl", "apply", "-f", f.name],
                 # check=True,
                 capture_output=True,
                 # text=True,
@@ -222,12 +215,12 @@ spec:
             print(result.stderr)
 
     print("\nThe following commands may come in handy:")
-    print(f"runai bash {args.name} - opens an interactive shell on the pod")
+    print(f"runai exec {args.name} -it zsh # opens an interactive shell on the pod")
     print(
-        f"runai delete job {args.name} - kills the job and removes it from the list of jobs"
+        f"runai delete job {args.name} # kills the job and removes it from the list of jobs"
     )
     print(
-        f"runai describe job {args.name} - shows information on the status/execution of the job"
+        f"runai describe job {args.name} # shows information on the status/execution of the job"
     )
-    print("runai list jobs - list all jobs and their status")
-    print(f"runai logs {args.name} - shows the output/logs for the job")
+    print("runai list jobs # list all jobs and their status")
+    print(f"runai logs {args.name} # shows the output/logs for the job")
