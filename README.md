@@ -1,16 +1,18 @@
 # MLO: Getting started with the EPFL Clusters
 This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both IC and RCP) -- so that you don't have to go through the countless documentations by yourself! We also provide scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and CLAIRE, and scripts created by Atli :)
 
-There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The IC cluster is equipped with V100 (32GB) and A100 (40GB) GPUs, while the RCP cluster has A100 (80GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
+There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The IC cluster is currently equipped with V100 (32GB) and A100 (40GB) GPUs, while the RCP cluster has A100 (80GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
 
 If you have any questions about the cluster or the setup, please reach out to any of your colleagues. 
 
 For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
 
+**Using the cluster creates costs. Please do not forget to stop your jobs when not used!**
+
 ## Minimal basic setup
 The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
 
-1. Ask Jennifer to add you to the group `runai-mlo` and potentially `rcp-runai-mlo` (for the RCP cluster): https://groups.epfl.ch/ 
+1. Ask Jennifer or Martin to add you to the group `runai-mlo`: https://groups.epfl.ch/ 
 
 2. Install kubectl. To make sure the version matches with the clusters (status: 15.12.2023), on macOS with Apple Silicon, run the following commands. For other systems, you will need to change the URL in the command above (check https://kubernetes.io/docs/tasks/tools/install-kubectl/). Make sure that the version matches with the version of the cluster!
 ```bash
@@ -73,11 +75,11 @@ The `runai submit` command already suffices to run jobs. If that is fine for you
 
 However, we provide a few scripts in this repository to make your life easier to get started. 
 
-**Use this repo to start a notebook:**
+**Use this repo to start a notebook on the cluster:**
 
 1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml` but <ins>**do not modify the template**</ins>.
 
-2. Fill in `user.yaml` your username, userID and groupID in `user.yaml`. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. There's also a field for wandb API key to fill out.
+2. Fill in `user.yaml` your username, userID and groupID in `user.yaml`. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. If you like, there's also a field for wandb API key to fill out.
    
 3. Create a pod with 1 GPU which expires in 7 days and uses the image stored at [link](https://ic-registry.epfl.ch/harbor/projects/33/repositories/tml%2Ftml) (you may need to install pyyaml with `pip install pyyaml` first).
 ```bash
