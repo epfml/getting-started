@@ -86,6 +86,12 @@ parser.add_argument(
     action="store_true",
     help="Print the generated yaml file instead of submitting it",
 )
+parser.add_argument(
+    "--backofflimit",
+    default=0,
+    type=int,
+    help="specifies the number of retries before marking a workload as failed (default 0). only exists for train jobs",
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -115,6 +121,10 @@ if __name__ == "__main__":
 
     if args.train:
         workload_kind = "TrainingWorkload"
+        backofflimit = f"""
+  backoffLimit: 
+    value: {args.backofflimit}
+"""
     else:
         workload_kind = "InteractiveWorkload"
 
@@ -179,6 +189,7 @@ spec:
     value: {args.image}
   imagePullPolicy:
     value: Always
+  {backofflimit}
   pvcs:
     items:
       pvc--0:
