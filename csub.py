@@ -127,6 +127,7 @@ if __name__ == "__main__":
 """
     else:
         workload_kind = "InteractiveWorkload"
+        backofflimit = ""
 
     working_dir = user_cfg["working_dir"]
     symlink_targets, symlink_destinations = zip(*user_cfg["symlinks"].items())
