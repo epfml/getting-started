@@ -141,8 +141,8 @@ runai config cluster rcp-context # switch to RCP cluster context
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
   * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 24 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
 * For a training job, use the flag `--train`, and replace the command with your training command. 
-* Work within `/mloscratch`. This is the shared storage that is mounted to your pod. See [File storage](#file-storage) for more details.
-  * Specifically, use a GitHub repo to store your code and clone it inside your folder on `/mloscratch`.
+* Work within `/mloscratch`. This is the shared storage that is mounted to your pod. **Create a directory with your GASPAR username in `/mloscratch/homes` folder. This will be your personal folder. Except under special circumstances, all your files should be kept inside your personal folder (e.g. `/mloscratch/homes/nicolas`).**  See [File storage](#file-storage) for more details.
+  * Suggestion: use a GitHub repo to store your code and clone it inside your folder.
 * Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
 
 This repo and script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. Nonetheless, keep these things in mind:
