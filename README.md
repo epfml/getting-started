@@ -134,7 +134,18 @@ runai list jobs # list all jobs and their status
 runai logs pod_name # shows the output/logs for the job
 runai config cluster ic-context # switch to IC cluster context
 runai config cluster rcp-context # switch to RCP cluster context
-``` 
+```
+Some commands that might come in handy (credits to Thijs):
+```bash
+# Clean up succeeded jobs from run:ai.
+runai list | grep " Succeeded " | awk '{print $1}' | parallel runai delete job {}
+# Overview of active jobs that fits on your screen.
+runai list jobs | sed '1d' | awk '{printf "%-42s %-20s\n", $1, $2}'
+# Auto-updating listing of jobs and their states.
+watch -n 10 "runai list | sed 1d | awk '{printf \"%0-40s %0-20s\n\", \$1, \$2}'"
+```
+
+
 
 
 ## Important notes and possible workflow
