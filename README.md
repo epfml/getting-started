@@ -40,7 +40,7 @@ The step-by-step instructions for first time users to quickly get a notebook run
 5. Switch between contexts and login to both clusters.
    ```bash
       # Switch to the IC cluster
-      runai config cluster ic-cluster
+      runai config cluster ic-context
       # Login to the cluster
       runai login
       # Check that things worked fine
@@ -48,7 +48,7 @@ The step-by-step instructions for first time users to quickly get a notebook run
       # put your default project
       runai config project mlo-$GASPAR_USERNAME
       # Repeat for the RCP cluster
-      runai config cluster rcp-cluster
+      runai config cluster rcp-context
       runai login
       runai list projects
       runai config project mlo-$GASPAR_USERNAME
