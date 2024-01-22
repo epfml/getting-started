@@ -26,6 +26,11 @@ rm -rf /home/${NB_USER}/.zshrc
 # create the working directory
 mkdir -p ${WORKING_DIR}
 
+if [[ -z $SYMLINK_TARGETS ]] || [[ -z $SYMLINK_PATHS ]] || [[ -z $SYMLINK_TYPES ]]; then
+  exec "$@" # Run the task
+  exit
+fi
+
 # Make symlinks between elements of SYMLINK_PATHS and SYMLINK_TARGETS
 IFS=: read -r -d '' -a target_array < <(printf '%s:\0' "$SYMLINK_TARGETS")
 IFS=: read -r -d '' -a path_array < <(printf '%s:\0' "$SYMLINK_PATHS")
