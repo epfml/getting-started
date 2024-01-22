@@ -92,6 +92,25 @@ parser.add_argument(
     type=int,
     help="specifies the number of retries before marking a workload as failed (default 0). only exists for train jobs",
 )
+parser.add_argument(
+    "--node_type",
+    type=str,
+    default="",
+    choices=["", "G9", "G10"],
+    help="node type to run on (default is empty, which means any node). \
+          only exists for IC cluster: G9 for V100, G10 for A100. \
+          leave empty for RCP",
+)
+parser.add_argument(
+    "--host_ipc",
+    action="store_true",
+    help="created workload will use the host's ipc namespace",
+)
+parser.add_argument(
+    "--no_symlinks",
+    action="store_true",
+    help="do not create symlinks to the user's home directory",
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -130,17 +149,22 @@ if __name__ == "__main__":
         backofflimit = ""
 
     working_dir = user_cfg["working_dir"]
-    symlink_targets, symlink_destinations = zip(*user_cfg["symlinks"].items())
-    symlink_targets = ":".join(
-        [os.path.join(working_dir, target) for target in symlink_targets]
-    )
-    symlink_paths = ":".join(
-        [
-            os.path.join(f"/home/{user_cfg['user']}", dest[1])
-            for dest in symlink_destinations
-        ]
-    )
-    symlink_types = ":".join([dest[0] for dest in symlink_destinations])
+    if not args.no_symlinks:
+        symlink_targets, symlink_destinations = zip(*user_cfg["symlinks"].items())
+        symlink_targets = ":".join(
+            [os.path.join(working_dir, target) for target in symlink_targets]
+        )
+        symlink_paths = ":".join(
+            [
+                os.path.join(f"/home/{user_cfg['user']}", dest[1])
+                for dest in symlink_destinations
+            ]
+        )
+        symlink_types = ":".join([dest[0] for dest in symlink_destinations])
+    else:
+        symlink_targets = ""
+        symlink_paths = ""
+        symlink_types = ""
     cfg = f"""
 apiVersion: run.ai/v2alpha1
 kind: {workload_kind}
@@ -209,6 +233,16 @@ spec:
     value: ClusterIP
   username:
     value: {user_cfg['user']}
+"""
+    if args.node_type:
+        cfg += f"""
+  nodeType:
+    value: {args.node_type} # G10 for A100, G9 for V100 (on IC cluster)
+"""
+    if args.host_ipc:
+        cfg += f"""
+  hostIpc:
+    value: true
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
