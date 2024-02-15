@@ -85,6 +85,13 @@ However, we provide a few scripts in this repository to make your life easier to
 ```bash
 python csub.py -n sandbox -g 1 -t 7d -i ic-registry.epfl.ch/mlo/mlo:v1 --command "cd /mloscratch/homes/<your username>; pip install jupyter && jupyter notebook"
 ```
+> [!NOTE]  
+> If the pod creation fails saying `mkdir: cannot create directory '/mloscratch/homes/<your username>': Permission denied`, try creating the directory manually by
+> ```bash
+> ssh <your username>@haas001.rcp.epfl.ch
+> mkdir /mnt/mlo/scratch/homes/<your username>
+> ```
+> and then try again. 
 
 4. Wait until the pod has a 'running' status -- this can take a bit (max ~5 min or so). Check the status of the job with 
 ```bash
