@@ -202,6 +202,8 @@ spec:
         value: "{symlink_types}"
       WANDB_API_KEY:
         value: {user_cfg['wandb_api_key']}
+      HF_HOME:
+        value: /mloscratch/hf_cache
       EPFML_LDAP:
         value: {user_cfg['user']}
   gpu:
