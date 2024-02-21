@@ -1,4 +1,4 @@
-FROM --platform=amd64 nvidia/cuda:11.4.3-cudnn8-devel-ubuntu20.04
+FROM --platform=amd64 nvidia/cuda:12.0.0-cudnn8-devel-ubuntu22.04
 LABEL maintainer "Alexander Hägele <alexander.hagele@epfl.ch>"
 
 ENV DEBIAN_FRONTEND=noninteractive
