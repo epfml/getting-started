@@ -68,5 +68,8 @@ RUN cp -r /root/.oh-my-zsh/ /docker/.oh-my-zsh/
 RUN cp -r /root/.zshrc /docker/.zshrc
 RUN cp -r /root/.bashrc /docker/.bashrc
 RUN cp -r /root/.profile /docker/.profile
+RUN echo "umask 007" >> /docker/.zshrc
+RUN echo "umask 007" >> /docker/.bashrc
+
 
 ENTRYPOINT ["/docker/entrypoint.sh"]
