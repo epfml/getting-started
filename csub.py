@@ -170,7 +170,7 @@ apiVersion: run.ai/v2alpha1
 kind: {workload_kind}
 metadata:
   annotations:
-    runai-cli-version: 2.9.18
+    runai-cli-version: 2.9.25
   labels:
     PreviousJob: "true"
   name: {args.name}
