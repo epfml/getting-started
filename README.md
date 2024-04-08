@@ -5,7 +5,7 @@ There are two clusters available to us: the IC cluster (department only) and the
 
 For starters, we recommend you to go through the [minimal basic setup](#minimal-basic-setup) first and then read the [important notes](#important-notes-and-workflow). 
 
-If you come up with any question about the cluster or the setup that you do not find answered here, you can check the [frequently asked questions page](faq.md). Also, please do not hesitate to reach out to any of your colleagues. 
+If you come up with any question about the cluster or the setup that you do not find answered here, you can check the [frequently asked questions page](docs/faq.md). Also, please do not hesitate to reach out to any of your colleagues. 
 For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster). There are also [quick links](#quick-links) below.
 
 > [!CAUTION]
@@ -256,7 +256,7 @@ If you want to read up more on the cluster, you can checkout a great in-depth gu
 We go through a few more details on the cluster usage, run:ai and the scripts in this section, and provide alternative ways to use the cluster.
 
 ## Alternative workflow: using the run:ai CLI and base docker images with pre-installed packages
-The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup. For more details, see the [the dedicated readme](runai_cli.md).
+The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup. For more details, see the [the dedicated readme](docs/runai_cli.md).
 
 ## Creating a custom docker image
 In case you want to customize it and create your own docker image, follow these steps:
@@ -301,8 +301,9 @@ kubectl port-forward <pod_name> 8888:8888
 ├── publish.sh                    # Script to push the docker image in the registry
 ├── kubeconfig.yaml               # Kubeconfig that you should store in ~/.kube/config
 └── README.md                     # This file
-└── faq.md                        # FAQ
-└── runai_cli.md                  # Run:ai CLI guide
+├── docs
+  ├── faq.md                        # FAQ
+  └── runai_cli.md                  # Run:ai CLI guide
 ```
 
 ## Other cluster-related code repositories

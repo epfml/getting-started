@@ -46,7 +46,7 @@ Check the dashboard for the IC cluster (https://ic-dashboard.epfl.ch/) or the RC
 
 <details>
 <summary><i> Can I create my own Docker images? </i> </summary>
-Yes, you can -- see <a href=README.md#creating-a-custom-docker-image>README.md#creating-a-custom-docker-image</href> for more information.
+Yes, you can -- see <a href="README.md#creating-a-custom-docker-image">README.md#creating-a-custom-docker-image</a> for more information.
 </details>
 
 ---
