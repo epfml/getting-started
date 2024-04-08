@@ -128,7 +128,7 @@ Check the arguments for the script to see what they do.
 
 What this repository does on first run:
 - We provide a default MLO docker image `mlo/mlo:v1` that should work for most use cases. If you use this default image, the first time you run `csub.py`, it will create a working directory with your username inside `/mloscratch/homes`. Moreover, for each symlink you find the `user.yaml` file the script will create the respective file/folder inside `mloscratch` and link it to the home folder of the pod. This is to ensure that these files and folders are persistent across different pods. 
-    - >[!TIP] Small caveat: csub.py expects your image to have zsh installed.
+    - **Small caveat**: csub.py expects your image to have zsh installed.
 - The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
   - In other words: you can use have and environment (e.g. `conda activate env`) and this environment stays persistent.
 - Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
