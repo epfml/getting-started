@@ -10,7 +10,7 @@ If you encounter problems that are not covered in this list or in the [main read
 ___ 
 <details>
 <summary><i>I'm confused by the storages mlodata, mloscratch... Where should I store my files or training data ?</i> </summary>
-We agreee that the storage system can be confusing -- simply put: keep everything in your personal home folder on mloscratch, including training data, because only scratch can be mounted on a pod. The other storage mlodata is just for very long-term (e.g. replication for published papers). Moving things onto the cluster or between folders can also be done easily via [HaaS machine](README.md#the-haas-machine). For more details on storage, see [file management](README.md#file-management) again.
+We agreee that the storage system can be confusing -- simply put: keep everything in your personal home folder on mloscratch, including training data, because only scratch can be mounted on a pod. The other storage mlodata is just for very long-term (e.g. replication for published papers). Moving things onto the cluster or between folders can also be done easily via <a href="README.md#the-haas-machine">HaaS machine </a>. For more details on storage, see <a href="README.md#file-management">file management</a> again.
 </details>
 
 ---
@@ -18,7 +18,7 @@ We agreee that the storage system can be confusing -- simply put: keep everythin
 <details>
 
 <summary><i>I want to move data onto the cluster or between mlodata and mloscratch. How do I do that?</i> </summary>
-Moving things onto the cluster or between folders can also be done easily via [HaaS machine](README.md#the-haas-machine).
+Moving things onto the cluster or between folders can also be done easily via <a href="README.md#the-haas-machine"> HaaS machine</a>.
 </details>
 
 ---
@@ -39,12 +39,12 @@ Make sure that you have requested the correct resources (CPU, memory, GPU, etc.)
 
 <details>
 <summary><i> Where can I see the usage of the cluster? </i> </summary>
-Check the dashboard for the [IC cluster](https://ic-dashboard.epfl.ch/) or the [RCP cluster](https://rcp-dashboard.epfl.ch/).
+Check the dashboard for the IC cluster (https://ic-dashboard.epfl.ch/) or the RCP cluster (https://rcp-dashboard.epfl.ch/).
 </details>
 
 ---
 
 <details>
 <summary><i> Can I create my own Docker images? </i> </summary>
-Yes, you can -- see [README.md#creating-a-custom-docker-image](README.md#creating-a-custom-docker-image) for more information.
+Yes, you can -- see <a href=README.md#creating-a-custom-docker-image>README.md#creating-a-custom-docker-image</href> for more information.
 </details>
