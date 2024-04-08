@@ -8,7 +8,8 @@ For starters, we recommend you to go through the [minimal basic setup](#minimal-
 If you come up with any question about the cluster or the setup that you do not find answered here, you can check the [frequently asked questions page](faq.md). Also, please do not hesitate to reach out to any of your colleagues. 
 For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster). There are also [quick links](#quick-links) below.
 
->[!CAUTION] Using the cluster creates costs. Please do not forget to stop your jobs when not used!
+> [!CAUTION]
+> Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
 ## Minimal basic setup
 The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
@@ -177,7 +178,8 @@ Of course, the script is just one suggested workflow that tries to maximize prod
 > * Using a training job makes sure that you kill the pod when your code/experiment is finished in order to save money.
 
 Most importantly:
->[!CAUTION] Using the cluster creates costs. Please do not forget to stop your jobs when not used!
+>[!CAUTION]
+> Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
@@ -208,7 +210,8 @@ For very secure long-term storage, we have:
   * This is long term storage, backed up carefully with replication (i.e. stored on multiple hard drives). This is meant to contain artifacts that you want to keep for an undetermined amount of time (e.g. things for a publication). 
 * `mloraw1`
    * Not clear right now how this will be used in the future (status: 15.12.2023).
-> [!CAUTION] You cannot mount mlodata or mloraw on pods. Use the haas machine below to access it.
+> [!CAUTION]
+> You cannot mount mlodata or mloraw on pods. Use the haas machine below to access it.
 
 ### Moving data onto/between storage
 Since `mloscratch` is not _replicated_, whenever you need things to become permanent, move them to `mlodata1`. This could be the case for paper artifacts, certain results or checkpoints, and so on. 
