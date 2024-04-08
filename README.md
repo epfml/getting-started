@@ -3,11 +3,12 @@ This repository contains the basic steps to start running scripts and notebooks 
 
 There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The IC cluster is currently equipped with V100 (32GB) and A100 (40GB) GPUs, while the RCP cluster has A100 (80GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
 
-If you have any questions about the cluster or the setup, please reach out to any of your colleagues. 
+For starters, we recommend you to go through the [minimal basic setup](#minimal-basic-setup) first and then read the [important notes](#important-notes-and-workflow). 
 
-For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster).
+If you come up with any question about the cluster or the setup that you do not find answered here, you can check the [frequently asked questions page](faq.md). Also, please do not hesitate to reach out to any of your colleagues. 
+For specific problems and errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster). There are also [quick links](#quick-links) below.
 
-**Using the cluster creates costs. Please do not forget to stop your jobs when not used!**
+>[!CAUTION] Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
 ## Minimal basic setup
 The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
@@ -91,7 +92,7 @@ python csub.py -n sandbox -g 1 -t 7d -i ic-registry.epfl.ch/mlo/mlo:v1 --command
 > ssh <your username>@haas001.rcp.epfl.ch
 > mkdir /mnt/mlo/scratch/homes/<your username>
 > ```
-> and then try again. 
+> and then try again. See [file management](#file-management) if you want more details.
 
 4. Wait until the pod has a 'running' status -- this can take a bit (max ~5 min or so). Check the status of the job with 
 ```bash
@@ -120,13 +121,15 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> -i <docker image> --command <cmd> [--train]
+python csub.py --n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
 What this repository does on first run:
 - We provide a default MLO docker image `mlo/mlo:v1` that should work for most use cases. If you use this default image, the first time you run `csub.py`, it will create a working directory with your username inside `/mloscratch/homes`. Moreover, for each symlink you find the `user.yaml` file the script will create the respective file/folder inside `mloscratch` and link it to the home folder of the pod. This is to ensure that these files and folders are persistent across different pods. 
+    - >[!TIP] Small caveat: csub.py expects your image to have zsh installed.
 - The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
+  - In other words: you can use have and environment (e.g. `conda activate env`) and this environment stays persistent.
 - Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
 
 If you want to have another workflow, you can also directly use the run:ai CLI together with other docker images. See [this section](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages) for more details.
@@ -155,18 +158,26 @@ watch -n 10 "runai list | sed 1d | awk '{printf \"%0-40s %0-20s\n\", \$1, \$2}'"
 
 
 
-## Important notes and possible workflow
+## Important notes and workflow
+We provide the script in this repo as a convenient way of creating jobs. 
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
-  * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 24 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
-* For a training job, use the flag `--train`, and replace the command with your training command. 
-* Work within `/mloscratch`. This is the shared storage that is mounted to your pod. **Create a directory with your GASPAR username in `/mloscratch/` folder. This will be your personal folder. Except under special circumstances, all your files should be kept inside your personal folder (e.g. `/mloscratch/nicolas` if your username is nicolas) or in your personal home folder (e.g. `/mloscratch/homes/nicolas`).**  Should you use the `csub.py` script, the first run will automatically create a working directory with your username inside `/mloscratch/homes`. See [File storage](#file-storage) for more details on storage.
-  * Suggestion: use a GitHub repo to store your code and clone it inside your folder.
-* Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
+  * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 12 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
+* For a training job, use the flag `--train`, and replace the command with your training command. Using a training job allows you to use more than 1 GPU (up to 8 on one node). Moreover, a training job makes sure that the pod is killed when your code/experiment is finished in order to save money.
 
-This repo and script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. Nonetheless, keep these things in mind:
-- CPU-only pods are cheap, approx 3 CHF/month, so we recommend creating a CPU-only machine that you can let run for the entire duration of a project and that you use for code development/debugging through VSCODE.
-- When your code is ready and you want to run some experiments or you need to debug on GPU, you can create one or more new pods with GPU (multiple pods with 1 GPU are easier to get than one pod with multiple GPUs). Simply specify the command in the python launch script.
--  Using a training job makes sure that you kill the pod when your code/experiment is finished in order to save money.
+Of course, the script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. For whichever workflow you go for, keep these things in mind:
+> [!IMPORTANT]
+> * Work within `/mloscratch`. This is the shared storage that is mounted to your pod.
+>   * Create a directory with your GASPAR username in `/mloscratch/` folder. This will be your personal folder. Except under special circumstances, all your files should be kept inside your personal folder (e.g. `/mloscratch/nicolas` if your username is nicolas) or in your personal home folder (e.g. `/mloscratch/homes/nicolas`).**  
+>   * Should you use the `csub.py` script, the first run will automatically create a working directory with your username inside `/mloscratch/homes`.
+>   * Suggestion: use a GitHub repo to store your code and clone it inside your folder.
+> * Moving things onto the cluster or between folders can also be done easily via [HaaS machine](#the-haas-machine). For more details on storage, see [file management](#file-management).
+> * Remember that your job can get killed ***anytime*** if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
+> * CPU-only pods are cheap, approx 3 CHF/month, so we recommend creating a CPU-only machine that you can let run and use for code development/debugging through VSCODE.
+> * When your code is ready and you want to run some experiments or you need to debug on GPU, you can create one or more new pods with GPU. Simply specify the command in the python launch script.
+> * Using a training job makes sure that you kill the pod when your code/experiment is finished in order to save money.
+
+Most importantly:
+>[!CAUTION] Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
@@ -174,8 +185,43 @@ To easily attach a VSCODE window to a pod we recommend the following steps:
 2. From your VSCODE window, click on Kubernetes -> ic-cluster/rcp-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
 3. Right-click on the pod you want to access and select `Attach Visual Studio Code`, this will start a vscode session attached to your pod.
 4. The symlinks ensure that settings and extensions are stored in `mloscratch/homes/<gaspar username>` and therefore shared across pods.
+5. Note that when opening the VS code window, it opens the home folder of the pod (not scratch!). You can navigate to your working directory (code) by navigating to `/mloscratch/homes/<your username>`.
 
 You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/how-to-vscode).
+
+## The HaaS machine
+The HaaS machine is provided by IT that allows you to move files, create folders, and copy files between `mlodata1`, `mloraw1`, and `mloscratch`, without needing to create a pod. You can access it via:
+```bash
+  # For basic file movement, folder creation, or
+  # copying from/to mlodata1 to/from scratch:
+  ssh <gaspar_username>@haas001.rcp.epfl.ch
+```
+The volumes are mounted inside the folders `/mnt/mlo/mlodata1`, `/mnt/mlo/mloraw1`, `/mnt/mlo/scratch`. See below for what the spaces are used for.
+
+## File management
+Reminder: the cluster uses kubernetes pods, which means that in principle, any file created inside a pod will be deleted when the pod is killed. 
+
+To store files permanently, you need to mount network disks to your pod. In our case, this is `mloscratch` -- _all_ code and experimentation should be stored there. Except under special circumstances, all your files should be kept inside your personal folder (e.g. `/mloscratch/nicolas` if your username is nicolas) or in your personal home folder (e.g. `/mloscratch/homes/nicolas`). Scratch is high-performance storage that is meant to be accessed/mounted from pods. Even though it is called "scratch", you do not need to generally worry about losing data (it is just not replicated across multiple hard drives).
+
+For very secure long-term storage, we have:
+* `mlodata1`. 
+  * This is long term storage, backed up carefully with replication (i.e. stored on multiple hard drives). This is meant to contain artifacts that you want to keep for an undetermined amount of time (e.g. things for a publication). 
+* `mloraw1`
+   * Not clear right now how this will be used in the future (status: 15.12.2023).
+> [!CAUTION] You cannot mount mlodata or mloraw on pods. Use the haas machine below to access it.
+
+### Moving data onto/between storage
+Since `mloscratch` is not _replicated_, whenever you need things to become permanent, move them to `mlodata1`. This could be the case for paper artifacts, certain results or checkpoints, and so on. 
+
+Currently, if you need to move things between `mlodata1` and `scratch`, you need to do this manually via a machine provided by IT:
+```bash
+  # For basic file movement, folder creation, or
+  # copying from/to mlodata1 to/from scratch:
+  ssh <gaspar_username>@haas001.rcp.epfl.ch
+```
+The volumes are mounted inside the folders `/mnt/mlo/mlodata1`, `/mnt/mlo/mloraw1`, `/mnt/mlo/scratch`. You can copy files between them using `cp` or `rsync`.
+
+**TODO:** Update with permanent machine for MLO once we have it.
 
 
 ## Quick links
@@ -198,7 +244,6 @@ run:ai docs: https://docs.run.ai
 If you want to read up more on the cluster, you can checkout a great in-depth guide by our colleagues at CLAIRE. They have a similar setup of compute and storage: 
 * [Compute and Storage @ CLAIRE](https://prickly-lip-484.notion.site/Compute-and-Storage-CLAIRE-91b4eddcc16c4a95a5ab32a83f3a8294#)
 
----
 &nbsp;
 &nbsp;
 &nbsp;
@@ -207,101 +252,22 @@ If you want to read up more on the cluster, you can checkout a great in-depth gu
 # More background on the cluster usage, run:ai and the scripts
 We go through a few more details on the cluster usage, run:ai and the scripts in this section, and provide alternative ways to use the cluster.
 
-## File storage
-In principle, any file created inside a pod will be deleted when the pod is killed. To store files permanently, you need to mount network disks to your pod. In our case, this is `scratch` -- all code and experimentation should be stored there. It is meant to be accessed by experiment pods.
-
-To get a list of available pods, run `kubectl get pvc` (this stands for PersistentVolumeClaim). You should see
- * `runai-mlo-$GASPAR_USERNAME-mlodata1`
-   * long term storage, backed up carefully with replication (i.e. stored on multiple hard drives). This is meant to contain artifacts that you want to keep for an undetermined amount of time (e.g. things for a publication). 
-   * YOU SHOULD NOT MOUNT THIS FOR EXPERIMENTS.
- * `runai-mlo-$GASPAR_USERNAME-mloraw1`
-   * Same idea, but not clear right now how this will be used in the future (status: 15.12.2023).
- * `runai-mlo-$GASPAR_USERNAME-scratch`
-   * High-performance storage that is meant to be accessed/mounted from pods. You should contain your code, current artifacts, etc. Once you need things to become permanent, move them to `mlodata1`.
-
-Currently, if you need to move things between `mlodata1` and `scratch`, you need to do this manually via a machine provided by IT:
-```bash
-  # Copy from mlodata1 to scratch in this machine
-  ssh <gaspar_username>@haas001.rcp.epfl.ch
-```
-The volumes are mounted inside the folders `/mnt/mlo/mlodata1`, `/mnt/mlo/mloraw1`, `/mnt/mlo/scratch`. You can copy files between them using `cp` or `rsync`.
-
-**TODO:** Update with permanent machine for MLO once we have it.
-
 ## Alternative workflow: using the run:ai CLI and base docker images with pre-installed packages
-The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup.
-
-Thijs created a crash course with the main overview for the cluster with [these slides](https://docs.google.com/presentation/d/1n_yimybA3SbdnpMapyAMhA00lq_SN0BMHU_Ji-7mr2w/edit#slide=id.p). Additionally, he created a few base docker images with pre-installed packages:
-  * mlo/basic: numpy, jupyter, ...
-  * mlo/pytorch: basic + computer vision + pytorch
-  * mlo/jax: basic + computer vision + jax
-  * mlo/tensorflow: basic + computer vision + tensorflow
-  * mlo/latex: basic + texlive
-
-To update these, go to https://github.com/epfml/mlocluster-setup. Run `publish.sh` in `docker-images/`. To extend them or make your own: follow a Docker tutorial, or check [the section below](#creating-a-custom-docker-image).
-
-
-The following description is taken from Thijs' slides and notes:
-
-**Running an interactive session (for development / playing around)**
-
-Examples:
- * run:ai CLI
-```bash
-runai submit \
-  --name sandbox \
-  --interactive \ 
-  --gpu 1 \
-  --image ic-registry.epfl.ch/mlo/pytorch:latest \ # or any other image
-  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \ # mount scratch
-  --large-shm --host-ipc \ # just some optimization
-  --environment EPFML_LDAP=$GASPAR_USERNAME \ # environment variables
-  --command -- /entrypoint.sh sleep infinity # keeps the pod runnning until killed
-```
-
-Wait until the pod has status RUNNING. This can take a while (10 min or so).
-```bash
-runai describe job sandbox
-```
-
-You can run things (like a bash shell) on the machine like this:
-```bash 
-runai exec sandbox -it -- su $GASPAR_USERNAME
-```
-
-The `'su $GASPAR_USERNAME'` gives you a shell running under your user account, allowing you to access network storage. While your user can access /mloscratch, the root user cannot.
-
-**NOTE**: These base images are not compatible with the python script in this repository. The reason is that this python script is set up to use your GASPAR user id and group id as the main user in the docker image. Thijs' images use the root user and have the GASPAR user on top; you can still use the python script, but you need to modify it to use the correct user id and group id.
-
-## Running a job (for experiments)
-[[Minimal cifar example including logging to wandb]](https://github.com/epfml/cifar/tree/wandb)
-
-Simply replace the command in the run:ai CLI example above with your command. For example, to run a python script:
-```bash
-runai submit \
-  --name experiment-hyperparams-1 \
-  --gpu 1 \
-  --image ic-registry.epfl.ch/mlo/pytorch:latest \
-  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
-  --large-shm --host-ipc \
-  --environment EPFML_LDAP=$GASPAR_USERNAME \
-  --environment LEARNING_RATE=0.5 \
-  --environment OPTIMIZER=Adam \
-  --command -- /entrypoint.sh su $GASPAR_USERNAME -c 'cd code_dir && python train.py'
-```
-Remember that your job can get killed anytime if run:ai needs to make space for other users. Make sure to implement checkpointing and recovery into your scripts. 
-
+The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup. For more details, see the [the dedicated readme](runai_cli.md).
 
 ## Creating a custom docker image
 In case you want to customize it and create your own docker image, follow these steps:
 - **Request registry access**: This step is needed to push your own docker images in the container. Try login here https://ic-registry.epfl.ch/ and see if you see members inside the MLO project. The groups of runai are already added, it should work already. If not, reach out to Alex or a colleague.
  - **Install Docker:** `brew install --cask docker` (or any other preferred way according to the docker website). When you execute commands via terminal and you see an error '“Cannot connect to the Docker daemon”', try running docker via GUI the first time and then the commands should work.
  - **Login registry:** `docker login ic-registry.epfl.ch` and use your GASPAR credentials. Same for the RCP cluster: `docker login registry.rcp.epfl.ch` (but we're currently not using it).
- - **Modify Dockerfile:** 
+ 
+ 
+ Modify Dockerfile:** 
    - The repo contains a template Dockerfile that you can modify in case you need a custom image 
-   - Push the new docker using the script `publish.sh`, <ins>**Remember to rename the image (`mlo/username:tag`) such that you do not overwrite the default one**</ins>
+   - Push the new docker using the script `publish.sh`
+   - **Remember to rename the image (`mlo/username:tag`) such that you do not overwrite the default one**
 
-Alternatively, Matteo also wrote a custom one and summarized the steps here: https://gist.github.com/mpagli/6d0667654bf8342eb4923fedf731660e
+**Additional example:** Alternatively, Matteo also wrote a custom one and summarized the steps here: https://gist.github.com/mpagli/6d0667654bf8342eb4923fedf731660e
 * He created an image that runs by default under his Gaspar user ID and group ID. You can find those IDs in e.g. https://people.epfl.ch/matteo.pagliardini under 'donnees administratives'.
 * Upload your image to EPFL's registry
 ```bash
@@ -331,7 +297,9 @@ kubectl port-forward <pod_name> 8888:8888
 ├── Dockerfile                    # Dockerfile example  
 ├── publish.sh                    # Script to push the docker image in the registry
 ├── kubeconfig.yaml               # Kubeconfig that you should store in ~/.kube/config
-└── README.md
+└── README.md                     # This file
+└── faq.md                        # FAQ
+└── runai_cli.md                  # Run:ai CLI guide
 ```
 
 ## Other cluster-related code repositories
