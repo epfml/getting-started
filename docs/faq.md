@@ -1,7 +1,7 @@
 # FAQ about the EPFL clusters and the setup of this repo
 This is a list of questions that might pop up when you use the IC and RCP clusters.
 
-If you encounter problems that are not covered in this list or in the [main readme](README.md), either ...
+If you encounter problems that are not covered in this list or in the [main readme](../README.md), either ...
 * Please reach out to the colleagues and other members of the group (e.g. via the #cluster or #it channel on Slack) -- someone might know the answer :)
 * If there are errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster)
 * When appropriate and it's a common error, add the problem and solution to this list to keep it up to date!
@@ -10,7 +10,7 @@ If you encounter problems that are not covered in this list or in the [main read
 ___ 
 <details>
 <summary><i>I'm confused by the storages mlodata, mloscratch... Where should I store my files or training data ?</i> </summary>
-We agreee that the storage system can be confusing -- simply put: keep everything in your personal home folder on mloscratch, including training data, because only scratch can be mounted on a pod. The other storage mlodata is just for very long-term (e.g. replication for published papers). Moving things onto the cluster or between folders can also be done easily via <a href="README.md#the-haas-machine">HaaS machine </a>. For more details on storage, see <a href="README.md#file-management">file management</a> again.
+We agreee that the storage system can be confusing -- simply put: keep everything in your personal home folder on mloscratch, including training data, because only scratch can be mounted on a pod. The other storage mlodata is just for very long-term (e.g. replication for published papers). Moving things onto the cluster or between folders can also be done easily via <a href="../README.md#the-haas-machine">HaaS machine </a>. For more details on storage, see <a href="../README.md#file-management">file management</a> again.
 </details>
 
 ---
@@ -18,7 +18,7 @@ We agreee that the storage system can be confusing -- simply put: keep everythin
 <details>
 
 <summary><i>I want to move data onto the cluster or between mlodata and mloscratch. How do I do that?</i> </summary>
-Moving things onto the cluster or between folders can also be done easily via <a href="README.md#the-haas-machine"> HaaS machine</a>.
+Moving things onto the cluster or between folders can also be done easily via <a href="../README.md#the-haas-machine"> HaaS machine</a>.
 </details>
 
 ---
@@ -46,7 +46,7 @@ Check the dashboard for the IC cluster (https://ic-dashboard.epfl.ch/) or the RC
 
 <details>
 <summary><i> Can I create my own Docker images? </i> </summary>
-Yes, you can -- see <a href="README.md#creating-a-custom-docker-image">README.md#creating-a-custom-docker-image</a> for more information.
+Yes, you can -- see <a href="../README.md#creating-a-custom-docker-image">../README.md#creating-a-custom-docker-image</a> for more information.
 </details>
 
 ---
