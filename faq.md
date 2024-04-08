@@ -48,3 +48,30 @@ Check the dashboard for the IC cluster (https://ic-dashboard.epfl.ch/) or the RC
 <summary><i> Can I create my own Docker images? </i> </summary>
 Yes, you can -- see <a href=README.md#creating-a-custom-docker-image>README.md#creating-a-custom-docker-image</href> for more information.
 </details>
+
+---
+
+<details>
+<summary><i> How do I update the csub.py with other arguments? What's the API? </i> </summary>
+The script uses the run:ai yaml API. You can find the documentation (which fields there are, etc.) here: https://docs.run.ai/v2.15/developer/cluster-api/reference/training/ (for training jobs) and https://docs.run.ai/v2.15/developer/cluster-api/reference/interactive/ (interactive jobs).
+</details>
+
+---
+
+<details>
+<summary><i> I get some permission error such as PermissionError: [Errno 13] Permission denied: '/mloscratch/hf_cache/...`. </i> </summary>
+This is probably related to the user and group permissions. Two things: for containers, make sure your user id is yours and the group id is 75545 (which stands for the runai-mlo group).
+Also, please add the following line to your .bashrc or .zshrc: umask 007 (e.g. via echo "umask 007" >> ~/.zshrc. Make sure that this is persistent or always done for all containers you use).
+If the problem persists, please contact us in the #it or #cluster channel. 
+
+As an explanation, we set up the huggingface cache (via the environment variable HF_HOME=/mloscratch/hf_cache) to be shared between users so that large datasets, checkpoints, ... are not downloaded repeatedly. You can also deactivate the huggingface cache, but it should work; so let us know if there's a problem.
+</details>
+
+---
+
+<details>
+<summary><i> I keep getting torch cuda out of memory errors, is there a way to ensure I have enough GPU memory available to be allocated? </i> </summary>
+If you request one GPU, you also receive the full GPU and its RAM. This means that getting an OOM error means you are saturating the GPU's memory, e.g. 40GB for the A100s on the IT cluster.
+  
+If debugging does not solve your issue, you can try switching to RCP where there are 80GB RAM GPUs.
+</details>
