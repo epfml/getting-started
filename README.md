@@ -288,7 +288,7 @@ kubectl port-forward <pod_name> 8888:8888
 ```
 
 ## Distributed training
-Newer versions of runAI (>2.13) support distributed training, meaning the ability to use run accross multiple compute nodes, even beyong the several GPUs available on one node.
+Newer versions of runAI (>2.13) support distributed training, meaning the ability to use run accross multiple compute nodes, even beyond the several GPUs available on one node.
 A nice [documentation to get started with distribtued jobs is available here](docs/multinode.md).
 
 ## File overview of this repository
