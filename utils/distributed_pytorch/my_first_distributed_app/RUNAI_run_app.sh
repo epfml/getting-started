@@ -1,0 +1,11 @@
+./runai-2.13.49 submit-dist pytorch \
+  --name my_first_distributed_app \
+  --image registry.rcp.epfl.ch/meditron-ddx/basic:latest-solergib \
+  --workers 1 \
+  --gpu 0 \
+  --pvc mlo-scratch:/mloscratch \
+  --annotation k8s.v1.cni.cncf.io/networks=kube-system/roce \
+  --extended-resource rdma/rdma=1 \
+  -e PATH_TO_ROOT_REPO=/mloscratch/homes/solergib/getting-started \
+  --large-shm \
+  -- bash -c '"source \${PATH_TO_ROOT_REPO}/utils/distributed_pytorch/my_first_distributed_app/RCP_run_app.sh &> \${PATH_TO_ROOT_REPO}/utils/distributed_pytorch/my_first_distributed_app/reports/Output_\${JOB_UUID}.txt"'
