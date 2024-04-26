@@ -10,8 +10,8 @@ Jobs can be submitted either through RunAI as documented in RunAI's website (htt
 
 To execute jobs in RCP, we will use the RunAI CLI, more specifically the `submit-dist pytorch` function, which will be responsible for launching the specified command on each pod. There are two ways to execute distributed applications:
 1. Interactive sessions. To force interactive sessions, we will have to launch the command `sleep infinity` on each pod. This way, we can connect to each pod, but we will have to manually execute the jobs on each one. This is useful for short sessions for debugging applications and checking that everything works correctly before launching a longer job.
-   > TIP
-   > Keep in mind that as soon as you disconnect from the pod, you will lose the current job you are executing.
+    > [!TIP]
+    > Keep in mind that as soon as you disconnect from the pod, you will lose the current job you are executing.
 2. Batched execution. In this mode, we will specify to the `submit-dist` function to execute a script, and it will defer execution until the requested resources are available. This is the recommended way to launch longer jobs such as model training.
 
 To configure the number of nodes and GPUs, we will use the following flags of the `submit-dist` function:
@@ -92,8 +92,8 @@ Note the following:
 4. We launch the job with `bash -c "..."` to:
    1. Allow for the delayed interpolation of environment variables to work (e.g., `PATH_TO_ROOT_REPO`).
    2. Store the output of the job in a file. It can also be checked with `runai logs --name`, but after some time, it will be inaccessible.
-    > [!WARNING]  
-    > Don't forget the double double quotes in `bash -c` (`'"..."'`).
+      > [!WARNING]  
+      > Don't forget the double double quotes in `bash -c` (`'"..."'`).
 
 The script to be executed on each node is as follows ([`/utils/distributed_pytorch/my_first_distributed_app/RCP_run_app.sh`](/utils/distributed_pytorch/my_first_distributed_app/RCP_run_app.sh)):
 
