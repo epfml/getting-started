@@ -1,0 +1,20 @@
+START TIME: Fri Apr 26 12:06:03 UTC 2024
+[2024-04-26 12:06:04,716] torch.distributed.run: [WARNING] 
+[2024-04-26 12:06:04,716] torch.distributed.run: [WARNING] *****************************************
+[2024-04-26 12:06:04,716] torch.distributed.run: [WARNING] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+[2024-04-26 12:06:04,716] torch.distributed.run: [WARNING] *****************************************
+[0:0]:1
+[0:0]:2
+[0:0]:3
+[0:0]:4
+[0:0]:5
+[0:0]:6
+[0:0]:7
+[0:0]:8
+[0:0]:9
+[0:0]:10
+[0:0]:The average bandwidth of all_reduce with a 4.0GB payload (10 trials, 32 ranks):
+[0:0]: algbw: 4.914 GBps (39.3 Gbps)
+[0:0]: busbw: 9.522 GBps (76.2 Gbps)
+[0:0]:
+END TIME: Fri Apr 26 12:06:47 UTC 2024

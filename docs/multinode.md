@@ -184,6 +184,13 @@ We conducted a benchmark to determine the bandwidth between nodes (In Gbps). As 
     <td class="tg-9wq8">29.1</td>
     <td class="tg-9wq8">15.5</td>
   </tr>
+  <tr>
+    <td class="tg-9wq8">32</td>
+    <td class="tg-9wq8">76.2</td>
+    <td class="tg-9wq8">39.3</td>
+    <td class="tg-9wq8">30.1</td>
+    <td class="tg-9wq8">15.6</td>
+  </tr>
 </tbody>
 </table>
 
