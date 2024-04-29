@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $PATH_TO_ROOT_REPO
+
 echo "START TIME: $(date)"
 
 export NCCL_IB_GID_INDEX=$(grep 'RoCE v2' $(grep '0000:0000:0000:0000:0000:ffff' /sys/class/infiniband/mlx5_bond_0/ports/1/gids/* | cut -d ':' -f 1 | sed 's/gids/gid_attrs\/types/') |  sed -e 's/.*\/\([0-9]*\):.*/\1/')
@@ -23,11 +25,7 @@ LAUNCHER="torchrun \
     --tee 3 \
     "
 
-PYTHON_FILE=/mloscratch/homes/solergib/getting-started/utils/distributed_pytorch/benchmark/all_reduce_bench.py
-PYTHON_ARGS=" \
-    --batch_size 16 \
-    --model Llama3 \
-    "
+PYTHON_FILE=utils/distributed_pytorch/benchmark/all_reduce_bench.py
 
 export CMD="$LAUNCHER $PYTHON_FILE $PYTHON_ARGS"
 bash -c "$CMD"

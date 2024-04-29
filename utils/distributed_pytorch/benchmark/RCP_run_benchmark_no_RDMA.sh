@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $PATH_TO_ROOT_REPO
+
 echo "START TIME: $(date)"
 
 # MASTER_ADDR -> The IP of the master node
@@ -18,11 +20,7 @@ LAUNCHER="torchrun \
     --tee 3 \
     "
 
-PYTHON_FILE=/mloscratch/homes/solergib/getting-started/utils/distributed_pytorch/benchmark/all_reduce_bench.py
-PYTHON_ARGS=" \
-    --batch_size 16 \
-    --model Llama3 \
-    "
+PYTHON_FILE=utils/distributed_pytorch/benchmark/all_reduce_bench.py
 
 export CMD="$LAUNCHER $PYTHON_FILE $PYTHON_ARGS"
 bash -c "$CMD"
