@@ -40,7 +40,7 @@ def timed_compute_pi(local_a, local_b, local_n, h, start_event, end_event):
     duration = start_event.elapsed_time(end_event) / 1000
     duration = torch.tensor([duration])
 
-    # Compute mean across all ranks
+    # Compute mean ONLY in rank 0
     dist.reduce(duration, dst=0, op=dist.ReduceOp.SUM)
 
     return duration
