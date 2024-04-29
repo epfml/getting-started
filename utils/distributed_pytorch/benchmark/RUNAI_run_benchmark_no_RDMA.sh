@@ -1,4 +1,4 @@
-./runai-2.13.49 submit-dist pytorch \
+runai submit-dist pytorch \
   --name all-reduce-bench \
   --image registry.rcp.epfl.ch/meditron-ddx/basic:latest-solergib \
   --workers 3 \

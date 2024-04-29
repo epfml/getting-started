@@ -1,4 +1,4 @@
-./runai-2.13.49 submit-dist pytorch \
+runai submit-dist pytorch \
   --name my_first_distributed_app \
   --image registry.rcp.epfl.ch/meditron-ddx/basic:latest-solergib \
   --workers 1 \
