@@ -193,9 +193,6 @@ To easily attach a VSCODE window to a pod we recommend the following steps:
 
 You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/how-to-vscode).
 
-
-If you want to have another workflow, you can also directly use the run:ai CLI together with other docker images. See [this section](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages) for more details.
-
 ## Managing pods
 After starting pods with the script, you can manage your pods using run:ai and the following commands: 
 ``` bash
