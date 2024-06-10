@@ -18,13 +18,13 @@ If you come up with any question about the cluster or the setup that you do not 
 The step-by-step instructions for first time users to quickly get a job running. 
 
 > [!TIP] 
-> After completing the setup, the **TL;DR** of the interaction with the cluster is:
+> After completing the setup, the **TL;DR** of the interaction with the cluster (using the scripts in this repo) is:
 > 
 > * Get a running job with one GPU that is reserved for you: `python csub.py -n sandbox`
 > 
 > * Connect to a terminal inside your job: `runai exec sandbox -it -- zsh`
 > 
-> * Run your code: `cd /mloscratch/homes/<your username>; python src/main.py --wandb`
+> * Run your code: `cd /mloscratch/homes/<your username>; python main.py`
 >
 > * In one go, you can also do: `python csub.py -n experiment --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
 
