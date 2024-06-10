@@ -5,18 +5,51 @@ There are two clusters available to us: the IC cluster (department only) and the
 
 For starters, we recommend you to go through the [minimal basic setup](#minimal-basic-setup) first and then read the [important notes](#important-notes-and-workflow). 
 
-If you come up with any question about the cluster or the setup that you do not find answered here, you can check the [frequently asked questions page](docs/faq.md). Also, please do not hesitate to reach out to any of your colleagues. 
-For specific problems and errors you think you should not be getting, open a ticket to `supportrcp@epfl.ch` (for RCP cluster) or `support-icit@epfl.ch` (for IC cluster). There are also [quick links](#quick-links) below.
+If you come up with any question about the cluster or the setup that you do not find answered here, you can check the [frequently asked questions page](docs/faq.md). Also, please do not hesitate to reach out to any of your colleagues. There are some more resources under the [quick links](#quick-links) below.
+
+> [!TIP]
+> If you have little prior experience with ML workflows, the setup below may seem daunting at first. But the guide tries to make it as simple as possible for you by providing you all commands in order, and with a script that does most of the work for you. The only requirement is that you have a basic understanding of how to use a terminal and git.
 
 > [!CAUTION]
-> Using the cluster creates costs. Please do not forget to stop your jobs when not used!
+> Using the cluster creates costs. Please be mindful of the resources you use. **Do not forget to stop your jobs when not used!**
 
-## Minimal basic setup
-The step-by-step instructions for first time users to quickly get a notebook running. Make sure you are on the EPFL wifi or connected to the VPN.
 
-1. Ask Jennifer or Martin to add you to the group `runai-mlo`: https://groups.epfl.ch/ 
+# Minimal basic setup
+The step-by-step instructions for first time users to quickly get a job running. 
 
-2. Install kubectl. To make sure the version matches with the clusters (status: 15.12.2023), on macOS with Apple Silicon, run the following commands. For other systems, you will need to change the URL in the command above (check https://kubernetes.io/docs/tasks/tools/install-kubectl/). Make sure that the version matches with the version of the cluster!
+> [!TIP] 
+> After completing the setup, the **TL;DR** of the interaction with the cluster is:
+> 
+> * Get a running job with one GPU that is reserved for you: `python csub.py -n sandbox`
+> 
+> * Connect to a terminal inside your job: `runai exec sandbox -it -- zsh`
+> 
+> * Run your code: `cd /mloscratch/homes/<your username>; python src/main.py --wandb`
+>
+> * In one go, you can also do: `python csub.py -n experiment --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
+
+---
+
+> [!IMPORTANT]
+> Make sure you are on the EPFL wifi or connected to the VPN. The cluster is otherwise not accessible.
+
+## 1: Pre-setup (access, repository)
+
+**Group access:** You need to have access to the cluster. For that, ask Jennifer or Martin (or someone else) to add you to the group `runai-mlo`: https://groups.epfl.ch/
+
+**Prepare your code:** While you are waiting to get access, create a GitHub repository where you will implement your code. Irrespective of our cluster or this guide, it is best practice to keep track of your code with a GitHub repo.
+
+**Prepare Weights and Biases:** For logging the results of your experiments, you can use [Weights and Biases](https://wandb.ai/). Create an account if you don't already have one. You will need an API key to later log your experiments.
+
+The following are just a bunch of commands you need to run to get started. If you do not understand them in detail, you can copy-paste them into your terminal :)
+
+## 2: Setup the tools on your own machine
+
+> [!IMPORTANT]
+> The setup below was tested on macOS with Apple Silicon. If you are using a different system, you may need to adapt the commands.
+> For Windows, we have no experience with the setup and thereby recommend WSL (Windows Subsystem for Linux) to run the commands.
+
+1. Install kubectl. To make sure the version matches with the clusters (status: 15.12.2023), on macOS with Apple Silicon, run the following commands. For other systems, you will need to change the URL in the command above (check https://kubernetes.io/docs/tasks/tools/install-kubectl/). Make sure that the version matches with the version of the cluster!
 ```bash
     # Sketch for macOS with Apple Silicon.
     # Download a specific version (here 1.26.7 for Apple Silicon macOS)
@@ -27,9 +60,9 @@ The step-by-step instructions for first time users to quickly get a notebook run
     sudo chown root: /usr/local/bin/kubectl
 ``` 
 
-3. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
+2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
 
-4. Install the run:ai CLI:
+3. Install the run:ai CLI:
    ```bash
       # Sketch for macOS with Apple Silicon
       # Download the CLI from the link shown in the help section.
@@ -39,7 +72,9 @@ The step-by-step instructions for first time users to quickly get a notebook run
       sudo mv ./runai /usr/local/bin/runai
       sudo chown root: /usr/local/bin/runai
    ```
-5. Switch between contexts and login to both clusters.
+
+## 3: Login
+4. Switch between contexts and login to both clusters.
    ```bash
       # Switch to the IC cluster
       runai config cluster ic-context
@@ -55,7 +90,7 @@ The step-by-step instructions for first time users to quickly get a notebook run
       runai list projects
       runai config project mlo-$GASPAR_USERNAME
    ```
-6. Run a quick test to see that you can launch jobs:
+5. Run a quick test to see that you can launch jobs:
    ```bash
       # Try to submit a job that mounts our shared storage and see its content.
       runai submit \
@@ -77,61 +112,87 @@ The `runai submit` command already suffices to run jobs. If that is fine for you
 
 However, we provide a few scripts in this repository to make your life easier to get started. 
 
-**Use this repo to start a notebook on the cluster:**
+## 4: Use this repo to start a job
 
-1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml` but <ins>**do not modify the template**</ins>.
-
-2. Fill in `user.yaml` your username and userID in `user.yaml`. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. If you like, there's also a field for wandb API key to fill out.
-   
-3. Create a pod with 1 GPU which expires in 7 days and uses the image stored at [link](https://ic-registry.epfl.ch/harbor/projects/33/repositories/tml%2Ftml) (you may need to install pyyaml with `pip install pyyaml` first).
+1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml`.
 ```bash
-python csub.py -n sandbox -g 1 -t 7d -i ic-registry.epfl.ch/mlo/mlo:v1 --command "cd /mloscratch/homes/<your username>; pip install jupyter && jupyter notebook"
+git clone https://github.com/epfml/getting-started.git
+cd getting-started
+touch user.yaml # then copy the content from templates/user_template.yaml inside here and update
 ```
-> [!NOTE]  
-> If the pod creation fails saying `mkdir: cannot create directory '/mloscratch/homes/<your username>': Permission denied`, try creating the directory manually by
-> ```bash
-> ssh <your username>@haas001.rcp.epfl.ch
-> mkdir /mnt/mlo/scratch/homes/<your username>
-> ```
-> and then try again. See [file management](#file-management) if you want more details.
+
+2. Fill in `user.yaml` with your username, userID in `user.yaml` and also update the working_dir with your username. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. **Also important for logging** (if you want to use wandb), get an API key from [Weights and Biases](https://wandb.ai/) and add it to the yaml.
+   
+3. Create a pod with 1 GPU (you may need to install pyyaml with `pip install pyyaml` first).
+```bash
+python csub.py -n sandbox
+```
 
 4. Wait until the pod has a 'running' status -- this can take a bit (max ~5 min or so). Check the status of the job with 
 ```bash
-runai describe job sandbox
+runai list # shows all jobs
+runai describe job sandbox # shows the status of the job sandbox
 ```
 
-5. When it is running, get the logs. Wait until you see the link for the notebook with 
+5. When it is running, connect to the pod with the command:
 ```bash
-kubectl logs sandbox-0-0
+runai exec sandbox -it -- zsh
 ```
 
-6. Once you have the link, enable port-forwarding via
-```bash 
-kubectl port-forward sandbox-0-0 8888:8888
+6. If everything worked correctly, you should be inside a terminal on the cluster!
+
+## 5: Cloning and running your code
+1. Clone your fork of your GitHub repository into the pod **inside your home folder**.
+```bash
+# Inside the pod
+cd /mloscratch/homes/<your_username>
+git clone https://github.com/<your username>/<your code>.git
+cd <your code>
+```
+2. Conda should be automatically installed. To create an environment that contains the packages needed for your experiments, you can do something like
+```bash
+# inside the pod
+conda create -n env python=3.10
+conda activate env
+# inside /mloscratch/homes/<your username>/<your code>
+pip install -r requirements.txt
+```
+3. Now you can run the code as you would on your local machine. For example, to run a `main.py` script (assuming you wrote it in your code), you simply do:
+```bash
+# Inside the pod, inside /mloscratch/homes/<your username>/<your code>
+python main.py
 ```
 
-7. If everything worked correctly, you should be able to open the link from the logs in your browser and see the notebook! A nice alternative setup is to attach VSCode to the pod, see [this section](#using-vscode) for more details.
+Hopefully, this should work and you're up and running! If you set up Weights and Biases, the API key in the `user.yaml` file should also automatically enable tracking your job on your wandb dashboard (so you can see the loss going down :) )
 
+For remote development (changing code, debugging, etc.), we recommend using VSCode. You can find more information on how to set it up in the [VSCode section](#using-vscode).
+
+> [!TIP]
+> Generally, the workflow we recommend is simple: develop your code locally or on the cluster (e.g. with VS Code), then push it to your repository. Once you want to try, run it on the cluster with the terminal that is attached via `runai exec sandbox -it -- zsh`. This way, you can keep your code and experiments organized and reproducible.
+>
+> Note that your pods **can be killed anytime**. This means you might need to restart an experiment (with the `python csub.py` command we give above). You can see the status of your jobs with `runai list`. If a job has status "Failed", you have to delete it via `runai delete job sandbox` before being able to start the same job again.
+> 
+> **Keep your files inside your home folder**: Importantly, when a job is restarted or killed, everything inside the container folders of `~/` are lost. This is why you need to work inside `/mloscratch/homes/<your username>`. For conda and other things (e.g. `~/.zshrc`, we have set up automatic symlinks to files that are persistent on scratch.
+>
+> To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
 
 You're good to go :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
 Remember that you can switch between the two contexts of the IC cluster and RCP cluster with the command `runai config cluster <cluster-name>` as shown above -- for example, if you need a 80GB A100 GPU, use the RCP cluster. 
 
+>[!CAUTION]
+> Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
-## Using the python script to launch jobs
-The python script `csub.py` is a wrapper around the run:ai CLI that makes it easier to launch jobs. It is meant to be used for both interactive jobs (e.g. notebooks) and training jobs.
-General usage:
 
-```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
-```
-Check the arguments for the script to see what they do.
+## Using VSCODE
+To easily attach a VSCODE window to a pod we recommend the following steps: 
+1. Install the [Kubernetes](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extensions.
+2. From your VSCODE window, click on Kubernetes -> ic-cluster/rcp-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
+3. Right-click on the pod you want to access and select `Attach Visual Studio Code`, this will start a vscode session attached to your pod.
+4. The symlinks ensure that settings and extensions are stored in `mloscratch/homes/<gaspar username>` and therefore shared across pods.
+5. Note that when opening the VS code window, it opens the home folder of the pod (not scratch!). You can navigate to your working directory (code) by navigating to `/mloscratch/homes/<your username>`.
 
-What this repository does on first run:
-- We provide a default MLO docker image `mlo/mlo:v1` that should work for most use cases. If you use this default image, the first time you run `csub.py`, it will create a working directory with your username inside `/mloscratch/homes`. Moreover, for each symlink you find the `user.yaml` file the script will create the respective file/folder inside `mloscratch` and link it to the home folder of the pod. This is to ensure that these files and folders are persistent across different pods. 
-    - **Small caveat**: csub.py expects your image to have zsh installed.
-- The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
-  - In other words: you can use have and environment (e.g. `conda activate env`) and this environment stays persistent.
-- Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
+You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/how-to-vscode).
+
 
 If you want to have another workflow, you can also directly use the run:ai CLI together with other docker images. See [this section](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages) for more details.
 
@@ -156,11 +217,8 @@ runai list jobs | sed '1d' | awk '{printf "%-42s %-20s\n", $1, $2}'
 watch -n 10 "runai list | sed 1d | awk '{printf \"%0-40s %0-20s\n\", \$1, \$2}'"
 ```
 
-
-
-
 ## Important notes and workflow
-We provide the script in this repo as a convenient way of creating jobs. 
+We provide the script in this repo as a convenient way of creating jobs (see more details in the section below).
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
   * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 12 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
 * For a training job, use the flag `--train`, and replace the command with your training command. Using a training job allows you to use more than 1 GPU (up to 8 on one node). Moreover, a training job makes sure that the pod is killed when your code/experiment is finished in order to save money.
@@ -181,15 +239,6 @@ Most importantly:
 >[!CAUTION]
 > Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
-## Using VSCODE
-To easily attach a VSCODE window to a pod we recommend the following steps: 
-1. Install the [Kubernetes](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extensions.
-2. From your VSCODE window, click on Kubernetes -> ic-cluster/rcp-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
-3. Right-click on the pod you want to access and select `Attach Visual Studio Code`, this will start a vscode session attached to your pod.
-4. The symlinks ensure that settings and extensions are stored in `mloscratch/homes/<gaspar username>` and therefore shared across pods.
-5. Note that when opening the VS code window, it opens the home folder of the pod (not scratch!). You can navigate to your working directory (code) by navigating to `/mloscratch/homes/<your username>`.
-
-You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/how-to-vscode).
 
 ## The HaaS machine
 The HaaS machine is provided by IT that allows you to move files, create folders, and copy files between `mlodata1`, `mloraw1`, and `mloscratch`, without needing to create a pod. You can access it via:
@@ -226,34 +275,21 @@ The volumes are mounted inside the folders `/mnt/mlo/mlodata1`, `/mnt/mlo/mloraw
 
 **TODO:** Update with permanent machine for MLO once we have it.
 
+## More background on the csub script
+The python script `csub.py` is a wrapper around the run:ai CLI that makes it easier to launch jobs. It is meant to be used for both interactive jobs (e.g. notebooks) and training jobs.
+General usage:
 
-## Quick links
+```bash
+python csub.py --n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+```
+Check the arguments for the script to see what they do.
 
-IC Cluster
- * Docs: https://icitdocs.epfl.ch/display/clusterdocs/IC+Cluster+Documentation
- * Dashboard: https://epfl.run.ai
- * Docker registry: https://ic-registry.epfl.ch/harbor/projects
- * Getting started guide: https://icitdocs.epfl.ch/display/clusterdocs/Getting+Started+with+RunAI
-
-RCP Cluster
- * RCP main page: https://www.epfl.ch/research/facilities/rcp/
- * Docs: https://wiki.rcp.epfl.ch
- * Dashboard: https://rcpepfl.run.ai
- * Docker registry: https://registry.rcp.epfl.ch/
- * Getting started guide: https://wiki.rcp.epfl.ch/en/home/CaaS/Quick_Start
-
-run:ai docs: https://docs.run.ai
-
-If you want to read up more on the cluster, you can checkout a great in-depth guide by our colleagues at CLAIRE. They have a similar setup of compute and storage: 
-* [Compute and Storage @ CLAIRE](https://prickly-lip-484.notion.site/Compute-and-Storage-CLAIRE-91b4eddcc16c4a95a5ab32a83f3a8294#)
-
-&nbsp;
-&nbsp;
-&nbsp;
-&nbsp;
-
-# More background on the cluster usage, run:ai and the scripts
-We go through a few more details on the cluster usage, run:ai and the scripts in this section, and provide alternative ways to use the cluster.
+What this repository does on first run:
+- We provide a default MLO docker image `mlo/mlo:v1` that should work for most use cases. If you use this default image, the first time you run `csub.py`, it will create a working directory with your username inside `/mloscratch/homes`. Moreover, for each symlink you find the `user.yaml` file the script will create the respective file/folder inside `mloscratch` and link it to the home folder of the pod. This is to ensure that these files and folders are persistent across different pods. 
+    - **Small caveat**: csub.py expects your image to have zsh installed.
+- The `entrypoint.sh` script is also installing conda in your scratch home folder. This means that you can manage your packages via conda (as you're probably used to), and the environment is shared across pods.
+  - In other words: you can use have and environment (e.g. `conda activate env`) and this environment stays persistent.
+- Alternatively, the bash script `utils/conda.sh` that you can find in your pod under `docker/conda.sh`, installs some packages in `utils/extra_packages.txt` in the default environment and creates an additional `torch` environment with pytorch and the packages in `utils/extra_packages.txt`. It's up to you to run this or manually customize your environment installation and configuration. 
 
 ## Alternative workflow: using the run:ai CLI and base docker images with pre-installed packages
 The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup. For more details, see the [the dedicated readme](docs/runai_cli.md).
@@ -308,6 +344,28 @@ A nice [documentation to get started with distribtued jobs is available here](do
   ├── faq.md                        # FAQ
   └── runai_cli.md                  # Run:ai CLI guide
 ```
+
+
+## Quick links
+
+IC Cluster
+ * Docs: https://icitdocs.epfl.ch/display/clusterdocs/IC+Cluster+Documentation
+ * Dashboard: https://epfl.run.ai
+ * Docker registry: https://ic-registry.epfl.ch/harbor/projects
+ * Getting started guide: https://icitdocs.epfl.ch/display/clusterdocs/Getting+Started+with+RunAI
+
+RCP Cluster
+ * RCP main page: https://www.epfl.ch/research/facilities/rcp/
+ * Docs: https://wiki.rcp.epfl.ch
+ * Dashboard: https://rcpepfl.run.ai
+ * Docker registry: https://registry.rcp.epfl.ch/
+ * Getting started guide: https://wiki.rcp.epfl.ch/en/home/CaaS/Quick_Start
+
+run:ai docs: https://docs.run.ai
+
+If you want to read up more on the cluster, you can checkout a great in-depth guide by our colleagues at CLAIRE. They have a similar setup of compute and storage: 
+* [Compute and Storage @ CLAIRE](https://prickly-lip-484.notion.site/Compute-and-Storage-CLAIRE-91b4eddcc16c4a95a5ab32a83f3a8294#)
+
 
 ## Other cluster-related code repositories
 These repositories are mostly by previous PhDs. They used these repositories to manage shared compute infrastructure. If you want to contribute, please ask Martin to add you as an editor.
