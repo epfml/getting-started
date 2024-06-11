@@ -13,6 +13,29 @@ If you come up with any question about the cluster or the setup that you do not 
 > [!CAUTION]
 > Using the cluster creates costs. Please be mindful of the resources you use. **Do not forget to stop your jobs when not used!**
 
+Content overview:
+- [MLO: Getting started with the EPFL Clusters](#mlo-getting-started-with-the-epfl-clusters)
+- [Minimal basic setup](#minimal-basic-setup)
+  - [1: Pre-setup (access, repository)](#1-pre-setup-access-repository)
+  - [2: Setup the tools on your own machine](#2-setup-the-tools-on-your-own-machine)
+  - [3: Login](#3-login)
+  - [5: Cloning and running your code](#5-cloning-and-running-your-code)
+- [Managing Workflows and Advanced Topics](#managing-workflows-and-advanced-topics)
+  - [Using VSCODE](#using-vscode)
+  - [Managing pods](#managing-pods)
+  - [Important notes and workflow](#important-notes-and-workflow)
+  - [The HaaS machine](#the-haas-machine)
+  - [File management](#file-management)
+    - [Moving data onto/between storage](#moving-data-ontobetween-storage)
+  - [More background on the csub script](#more-background-on-the-csub-script)
+  - [Alternative workflow: using the run:ai CLI and base docker images with pre-installed packages](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages)
+  - [Creating a custom docker image](#creating-a-custom-docker-image)
+  - [Port forwarding](#port-forwarding)
+  - [Distributed training](#distributed-training)
+- [File overview of this repository](#file-overview-of-this-repository)
+- [Quick links](#quick-links)
+  - [Other cluster-related code repositories](#other-cluster-related-code-repositories)
+
 
 # Minimal basic setup
 The step-by-step instructions for first time users to quickly get a job running. 
@@ -182,6 +205,7 @@ Remember that you can switch between the two contexts of the IC cluster and RCP 
 >[!CAUTION]
 > Using the cluster creates costs. Please do not forget to stop your jobs when not used!
 
+# Managing Workflows and Advanced Topics
 
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
@@ -324,7 +348,7 @@ kubectl port-forward <pod_name> 8888:8888
 Newer versions of runAI (>2.13) support distributed training, meaning the ability to use run accross multiple compute nodes, even beyond the several GPUs available on one node.
 A nice [documentation to get started with distribtued jobs is available here](docs/multinode.md).
 
-## File overview of this repository
+# File overview of this repository
 ```bash
 ├── utils
     ├── entrypoint.sh             # Sets up credentials and symlinks
@@ -343,7 +367,7 @@ A nice [documentation to get started with distribtued jobs is available here](do
 ```
 
 
-## Quick links
+# Quick links
 
 IC Cluster
  * Docs: https://icitdocs.epfl.ch/display/clusterdocs/IC+Cluster+Documentation
