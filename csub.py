@@ -169,8 +169,6 @@ if __name__ == "__main__":
 apiVersion: run.ai/v2alpha1
 kind: {workload_kind}
 metadata:
-  annotations:
-    runai-cli-version: 2.9.25
   labels:
     PreviousJob: "true"
   name: {args.name}
@@ -221,7 +219,7 @@ spec:
     items:
       pvc--0:
         value:
-          claimName: runai-mlo-{user_cfg['user']}-scratch
+          claimName: mlo-scratch
           existingPvc: true
           path: /mloscratch
           readOnly: false
