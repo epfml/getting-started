@@ -77,19 +77,23 @@ The following are just a bunch of commands you need to run to get started. If yo
     # Sketch for macOS with Apple Silicon.
     # Download a specific version (here 1.26.7 for Apple Silicon macOS)
     curl -LO "https://dl.k8s.io/release/v1.26.7/bin/darwin/arm64/kubectl"
+    # curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" #Linux
+
     # Give it the right permissions and move it.
     chmod +x ./kubectl
     sudo mv ./kubectl /usr/local/bin/kubectl
     sudo chown root: /usr/local/bin/kubectl
 ``` 
 
-2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
+2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix. For the updated cluster https://wiki.rcp.epfl.ch/home/CaaS/how-to-switch-between-rcp-caas-cluster-and-ic-caas-cluster
 
 3. Install the run:ai CLI:
    ```bash
       # Sketch for macOS with Apple Silicon
       # Download the CLI from the link shown in the help section.
       wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
+      # wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/linux #Linux
+   
       # Give it the right permissions and move it.
       chmod +x ./runai
       sudo mv ./runai /usr/local/bin/runai
@@ -98,6 +102,7 @@ The following are just a bunch of commands you need to run to get started. If yo
 
 ## 3: Login
 4. Switch between contexts and login to both clusters.
+   Old
    ```bash
       # Switch to the IC cluster
       runai config cluster ic-context
@@ -113,7 +118,8 @@ The following are just a bunch of commands you need to run to get started. If yo
       runai list projects
       runai config project mlo-$GASPAR_USERNAME
    ```
-5. Run a quick test to see that you can launch jobs:
+   For the updated cluster use `ic-caas` and `rcp-caas-prod`
+6. Run a quick test to see that you can launch jobs:
    ```bash
       # Try to submit a job that mounts our shared storage and see its content.
       runai submit \
