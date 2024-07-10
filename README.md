@@ -85,7 +85,7 @@ The following are just a bunch of commands you need to run to get started. If yo
     sudo chown root: /usr/local/bin/kubectl
 ``` 
 
-2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix. For the updated cluster https://wiki.rcp.epfl.ch/home/CaaS/how-to-switch-between-rcp-caas-cluster-and-ic-caas-cluster
+2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix. For the updated cluster use the config file at https://wiki.rcp.epfl.ch/home/CaaS/how-to-switch-between-rcp-caas-cluster-and-ic-caas-cluster
 
 3. Install the run:ai CLI:
    ```bash
