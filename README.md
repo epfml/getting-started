@@ -113,31 +113,36 @@ sudo mv ./runai /usr/local/bin/runai-ic
 sudo chown root: /usr/local/bin/runai-ic
 ```
 
-4. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
-   litte helper functions (see [template/cluster_switch](template/cluster_switch.sh)) that you can use to switch between the clusters.
-   To have these functions available in every terminal session, we add them to your `.zshrc` or `.bashrc` file. 
-   On the newest versions of macOS (which this guide is written for), put in your username for `<your username>` below and run the following commands:
-  ```bash
-  export GASPAR_USERNAME=<your username>
-  # on linux, replace .zshrc with .bashrc
-  echo "export GASPAR_USERNAME=$GASPAR_USERNAME" >> ~/.zshrc
-  curl -s https://raw.githubusercontent.com/epfml/getting-started/main/template/cluster_switch.sh | tee -a ~/.zshrc
-  source ~/.zshrc
-  ```
-
 ## 3: Login
 4. Switch between contexts and login to both clusters.
 ```bash
 # Switch to the IC cluster
-ic-cluster
+runai-ic config cluster ic-caas
 # Login to the cluster
-runai login
+runai-ic login
 # Check that things worked fine
-runai list projects
+runai-ic list projects
+# Put default project
+runai-ic config project mlo-$GASPAR_USERNAME
 # Repeat for the RCP cluster
-rcp-cluster
-runai login
+runai-rcp config cluster rcp-caas-test
+runai-rcp login
+runai-rcp list projects
+runai-rcp config project mlo-$GASPAR_USERNAME
 ```
+
+5. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
+   litte helper functions (see [template/cluster_switch](template/cluster_switch.sh)) that you can use to switch between the clusters.
+   To have these functions available in every terminal session, we add them to your `.zshrc` or `.bashrc` file. 
+   On the newest versions of macOS (which this guide is written with), put in your username for `<your username>` below and run the following commands:
+```bash
+export GASPAR_USERNAME=<your username>
+# on linux, replace .zshrc with .bashrc
+echo "export GASPAR_USERNAME=$GASPAR_USERNAME" >> ~/.zshrc
+curl -s https://raw.githubusercontent.com/epfml/getting-started/main/template/cluster_switch.sh | tee -a ~/.zshrc
+source ~/.zshrc
+```
+
 5. Run a quick test to see that you can launch jobs:
 ```bash
 # Let's use RCP
