@@ -76,41 +76,41 @@ The following are just a bunch of commands you need to run to get started. If yo
 
 1. Install kubectl. To make sure the version matches with the clusters (status: 15.12.2023), on macOS with Apple Silicon, run the following commands. For other systems, you will need to change the URL in the command above (check https://kubernetes.io/docs/tasks/tools/install-kubectl/). Make sure that the version matches with the version of the cluster!
 ```bash
-    # Sketch for macOS with Apple Silicon.
-    # Download a specific version (here v1.29.6 for Apple Silicon macOS)
-    curl -LO "https://dl.k8s.io/release/v1.29.6/bin/darwin/arm64/kubectl"
-    # Linux: curl -LO "https://dl.k8s.io/release/v1.29.6/bin/linux/amd64/kubectl"
-    # Give it the right permissions and move it.
-    chmod +x ./kubectl
-    sudo mv ./kubectl /usr/local/bin/kubectl
-    sudo chown root: /usr/local/bin/kubectl
+# Sketch for macOS with Apple Silicon.
+# Download a specific version (here v1.29.6 for Apple Silicon macOS)
+curl -LO "https://dl.k8s.io/release/v1.29.6/bin/darwin/arm64/kubectl"
+# Linux: curl -LO "https://dl.k8s.io/release/v1.29.6/bin/linux/amd64/kubectl"
+# Give it the right permissions and move it.
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+sudo chown root: /usr/local/bin/kubectl
 ``` 
 
 2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix.
 
 3. Install the run:ai CLI for RCP (two RCP clusters) and IC:
 ```bash
-    # Sketch for macOS with Apple Silicon
-    # Download the CLI from the link shown in the help section.
-    # for Linux: replace `darwin` with `linux`
-    wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
-    # Give it the right permissions and move it.
-    chmod +x ./runai
-    sudo mv ./runai /usr/local/bin/runai-rcp
-    sudo chown root: /usr/local/bin/runai-rcp
-    
-    # Repeat for RCP Prod Cluster  
-    wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
-    chmod +x ./runai
-    sudo mv ./runai /usr/local/bin/runai-rcp-prod
-    sudo chown root: /usr/local/bin/runai-rcp-prod
-    
-    # Repeat for IC Cluster
-    # for Linux: replace `macos` with `linux`
-    curl -sLo /tmp/runai https://go.epfl.ch/iccluster-runai-macos
-    chmod +x ./runai
-    sudo mv ./runai /usr/local/bin/runai-ic
-    sudo chown root: /usr/local/bin/runai-ic
+# Sketch for macOS with Apple Silicon
+# Download the CLI from the link shown in the help section.
+# for Linux: replace `darwin` with `linux`
+wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
+# Give it the right permissions and move it.
+chmod +x ./runai
+sudo mv ./runai /usr/local/bin/runai-rcp
+sudo chown root: /usr/local/bin/runai-rcp
+
+# Repeat for RCP Prod Cluster  
+wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
+chmod +x ./runai
+sudo mv ./runai /usr/local/bin/runai-rcp-prod
+sudo chown root: /usr/local/bin/runai-rcp-prod
+
+# Repeat for IC Cluster
+# for Linux: replace `macos` with `linux`
+curl -sLo /tmp/runai https://go.epfl.ch/iccluster-runai-macos
+chmod +x ./runai
+sudo mv ./runai /usr/local/bin/runai-ic
+sudo chown root: /usr/local/bin/runai-ic
 ```
 
 4. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
@@ -128,34 +128,34 @@ The following are just a bunch of commands you need to run to get started. If yo
 ## 3: Login
 4. Switch between contexts and login to both clusters.
 ```bash
-      # Switch to the IC cluster
-      ic-cluster
-      # Login to the cluster
-      runai login
-      # Check that things worked fine
-      runai list projects
-      # Repeat for the RCP cluster
-      rcp-cluster
-      runai login
+# Switch to the IC cluster
+ic-cluster
+# Login to the cluster
+runai login
+# Check that things worked fine
+runai list projects
+# Repeat for the RCP cluster
+rcp-cluster
+runai login
 ```
 5. Run a quick test to see that you can launch jobs:
 ```bash
-      # Let's use RCP
-      rcp-cluster
-      # Try to submit a job that mounts our shared storage and see its content.
-      runai submit \
-        --name setup-test-storage \
-        --image ubuntu \
-        --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
-        -- ls -la /mloscratch/homes
-      # Check the status of the job
-      runai describe job setup-test-storage
+# Let's use RCP
+rcp-cluster
+# Try to submit a job that mounts our shared storage and see its content.
+runai submit \
+  --name setup-test-storage \
+  --image ubuntu \
+  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
+  -- ls -la /mloscratch/homes
+# Check the status of the job
+runai describe job setup-test-storage
 
-      # Check its logs to see that it ran.
-      runai logs setup-test-storage
+# Check its logs to see that it ran.
+runai logs setup-test-storage
 
-      # Delete the successful jobs
-      runai delete jobs setup-test-storage
+# Delete the successful jobs
+runai delete jobs setup-test-storage
 ```
 
 The `runai submit` command already suffices to run jobs. If that is fine for you, you can jump to the section on using provided images and the run:ai CLI [here](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages).
