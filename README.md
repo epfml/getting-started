@@ -114,14 +114,15 @@ The following are just a bunch of commands you need to run to get started. If yo
 ```
 
 4. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
-   litte helper functions (see [templates/cluster_switch](templates/cluster_switch)) that you can use to switch between the clusters.
+   litte helper functions (see [template/cluster_switch](template/cluster_switch.sh)) that you can use to switch between the clusters.
    To have these functions available in every terminal session, we add them to your `.zshrc` or `.bashrc` file. 
    On the newest versions of macOS (which this guide is written for), put in your username for `<your username>` below and run the following commands:
   ```bash
   export GASPAR_USERNAME=<your username>
   # on linux, replace .zshrc with .bashrc
   echo "export GASPAR_USERNAME=$GASPAR_USERNAME" >> ~/.zshrc
-  curl -s https://raw.githubusercontent.com/epfml/getting-started/main/templates/cluster_switch | tee -a ~/.zshrc
+  curl -s https://raw.githubusercontent.com/epfml/getting-started/main/template/cluster_switch.sh | tee -a ~/.zshrc
+  source ~/.zshrc
   ```
 
 ## 3: Login
