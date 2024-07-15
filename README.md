@@ -226,7 +226,7 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
 >
->  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas`. It only works when the cluster is set correctly. 
+>  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["rcp-caas-test", "ic-caas", "rcp-caas-prod"]`). It only works when the cluster argument matches your currently chosen cluster. 
 
 You're good to go now! :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
 
