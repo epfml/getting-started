@@ -150,7 +150,8 @@ source ~/.zshrc
 ```bash
 # Let's use the normal RCP cluster
 rcp-cluster
-# Try to submit a job that mounts our shared storage and see its content. (side note: on the new rcp-prod, the pvc is called mlo-scratch, so the arg below has to be changed)
+# Try to submit a job that mounts our shared storage and see its content.
+# (side note: on the new rcp-prod, the pvc is called mlo-scratch, so the arg below has to be changed)
 runai submit \
   --name setup-test-storage \
   --image ubuntu \
