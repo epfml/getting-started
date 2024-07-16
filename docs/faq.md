@@ -13,6 +13,13 @@ ___
 We agreee that the storage system can be confusing -- simply put: keep everything in your personal home folder on mloscratch, including training data, because only scratch can be mounted on a pod. The other storage mlodata is just for very long-term (e.g. replication for published papers). Moving things onto the cluster or between folders can also be done easily via <a href="../README.md#the-haas-machine">HaaS machine </a>. For more details on storage, see <a href="../README.md#file-management">file management</a> again.
 </details>
 
+___ 
+<details>
+<summary><i>I submitted my job successfully (at least I did not see any error), but my job does not show up with the command `runai list jobs`.</i> </summary>
+We have found a scenario where jobs do not appear after they were submitted with a *wrong* PVC name -- notably, this can happen with the new RCP-Prod that renamed "runai-mlo-$GASPAR_USERNAME-scratch" to "mlo-scratch". Check the <a href=https://rcpepfl.run.ai/workloads>
+web interface</a> where your jobs should still be listed. At the moment of writing this, the jobs just end up in neverland and cannot be deleted or stopped :D So the easiest is just to resubmit the job with the correct PVC.
+</details>
+
 ---
 
 <details>
@@ -32,7 +39,7 @@ Note that when opening the VS code window, it opens the home folder of the pod (
 
 <details>
 <summary><i> My job is shown as "Pending" since quite some time. Why? </i> </summary>
-Make sure that you have requested the correct resources (CPU, memory, GPU, etc.) and that you are not exceeding the limits of the cluster. For example, if you launched the csub script with a node type such as "G10", but you are on RCP, the job will not start because the node type does not exist on RCP. Otherwise, it might just be that the cluster is busy and you need to wait a bit. See the question below.
+It might just be that the cluster is busy and you need to wait a bit. However, always make sure that you have requested the correct resources (CPU, memory, GPU, etc.) and that you are not exceeding the limits of the cluster. For example, if you launched the csub script with a node type such as "G10", but you are on RCP, the job will not start because the node type does not exist on RCP. See the question below.
 </details>
 
 ---
@@ -72,6 +79,7 @@ As an explanation, we set up the huggingface cache (via the environment variable
 <details>
 <summary><i> I keep getting torch cuda out of memory errors, is there a way to ensure I have enough GPU memory available to be allocated? </i> </summary>
 If you request one GPU, you also receive the full GPU and its RAM. This means that getting an OOM error means you are saturating the GPU's memory, e.g. 40GB for the A100s on the IT cluster.
-  
+
+You can try and debug your code to see where the memory is being used up. Some tools like nvidia-smi or nvtop might help you with that.
 If debugging does not solve your issue, you can try switching to RCP where there are 80GB RAM GPUs.
 </details>
