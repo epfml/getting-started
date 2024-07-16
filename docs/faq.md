@@ -39,7 +39,9 @@ Note that when opening the VS code window, it opens the home folder of the pod (
 
 <details>
 <summary><i> My job is shown as "Pending" since quite some time. Why? </i> </summary>
-It might just be that the cluster is busy and you need to wait a bit. However, always make sure that you have requested the correct resources (CPU, memory, GPU, etc.) and that you are not exceeding the limits of the cluster. For example, if you launched the csub script with a node type such as "G10", but you are on RCP, the job will not start because the node type does not exist on RCP. See the question below.
+It might just be that the cluster is busy and you need to wait a bit. See the question below.
+
+At the same time, always make sure that you have requested the correct resources (CPU, memory, GPU, etc.) and that you are not exceeding the limits of the cluster. For example, if you launched the csub script with a node type such as "G10", but you are on RCP, the job will not start because the node type does not exist on RCP. 
 </details>
 
 ---
