@@ -114,7 +114,7 @@ sudo chown root: /usr/local/bin/runai-ic
 ```
 
 ## 3: Login
-4. Switch between contexts and login to both clusters.
+1. Switch between contexts and login to both clusters.
 ```bash
 # Switch to the IC cluster
 runai-ic config cluster ic-caas
@@ -131,7 +131,7 @@ runai-rcp list projects
 runai-rcp config project mlo-$GASPAR_USERNAME
 ```
 
-5. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
+2. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
    litte helper functions (see [template/cluster_switch](template/cluster_switch.sh)) that you can use to switch between the clusters.
    To have these functions available in every terminal session, we add them to your `.zshrc` or `.bashrc` file. 
    On the newest versions of macOS (which this guide is written with), put in your username for `<your username>` below and run the following commands:
@@ -143,11 +143,11 @@ curl -s https://raw.githubusercontent.com/epfml/getting-started/main/template/cl
 source ~/.zshrc
 ```
 
-5. Run a quick test to see that you can launch jobs:
+3. Run a quick test to see that you can launch jobs:
 ```bash
-# Let's use RCP
+# Let's use the normal RCP cluster
 rcp-cluster
-# Try to submit a job that mounts our shared storage and see its content.
+# Try to submit a job that mounts our shared storage and see its content. (side note: on the new rcp-prod, the pvc is called mlo-scratch, so the arg below has to be changed)
 runai submit \
   --name setup-test-storage \
   --image ubuntu \
