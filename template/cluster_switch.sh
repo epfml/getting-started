@@ -17,6 +17,3 @@ function rcp-prod-cluster {
     runai config cluster rcp-caas-prod
     runai config project mlo-$GASPAR_USERNAME
 }
-
-# We make RCP our default cluster.
-rcp-cluster
