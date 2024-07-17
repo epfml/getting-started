@@ -2,6 +2,7 @@
 
 import argparse
 from datetime import datetime, timedelta
+from pprint import pprint
 import re
 import subprocess
 import tempfile
@@ -15,6 +16,13 @@ parser.add_argument(
     type=str,
     required=False,
     help="Job name (has to be unique in the namespace)",
+)
+parser.add_argument(
+    "-cl",
+    "--cluster",
+    type=str,
+    default="rcp-caas-test",
+    choices=["rcp-caas-test", "ic-caas", "rcp-caas-prod"],
 )
 parser.add_argument(
     "-c",
@@ -41,9 +49,9 @@ parser.add_argument(
 parser.add_argument(
     "--cpus",
     type=int,
-    default=4,
+    default=1,
     required=False,
-    help="The number of CPUs requested (default 4)",
+    help="The number of CPUs requested (default 1)",
 )
 parser.add_argument(
     "--memory",
@@ -96,9 +104,9 @@ parser.add_argument(
     "--node_type",
     type=str,
     default="",
-    choices=["", "G9", "G10"],
+    choices=["", "g9", "g10"],
     help="node type to run on (default is empty, which means any node). \
-          only exists for IC cluster: G9 for V100, G10 for A100. \
+          only exists for IC cluster: g9 for V100, g10 for A100. \
           leave empty for RCP",
 )
 parser.add_argument(
@@ -124,6 +132,27 @@ if __name__ == "__main__":
     with open(args.user, "r") as file:
         user_cfg = yaml.safe_load(file)
 
+    scratch_name = f"runai-mlo-{user_cfg['user']}-scratch"
+
+    # get current cluster and make sure argument matches
+    current_cluster = subprocess.run(
+        ["kubectl", "config", "current-context"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    ).stdout.strip()
+
+    if current_cluster == "rcp-caas-prod":
+        runai_cli_version = "2.16.55"
+        scratch_name = "mlo-scratch"
+    elif current_cluster == "rcp-caas-test":
+        runai_cli_version = "2.9.25"
+    elif current_cluster == "ic-caas":
+        runai_cli_version = "2.16.52"
+    assert (
+        current_cluster == args.cluster
+    ), f"Current cluster is {current_cluster}, but you specified {args.cluster}. Use --cluster {current_cluster}"
+
     if args.name is None:
         args.name = f"{user_cfg['user']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
@@ -140,13 +169,8 @@ if __name__ == "__main__":
 
     if args.train:
         workload_kind = "TrainingWorkload"
-        backofflimit = f"""
-  backoffLimit: 
-    value: {args.backofflimit}
-"""
     else:
         workload_kind = "InteractiveWorkload"
-        backofflimit = ""
 
     working_dir = user_cfg["working_dir"]
     if not args.no_symlinks:
@@ -165,12 +189,14 @@ if __name__ == "__main__":
         symlink_targets = ""
         symlink_paths = ""
         symlink_types = ""
+
+    # this is the yaml file that will be submitted to the cluster
     cfg = f"""
 apiVersion: run.ai/v2alpha1
 kind: {workload_kind}
 metadata:
   annotations:
-    runai-cli-version: 2.9.25
+    runai-cli-version: {runai_cli_version}
   labels:
     PreviousJob: "true"
   name: {args.name}
@@ -179,7 +205,7 @@ spec:
   name:
     value: {args.name}
   arguments: 
-      value: "/bin/zsh -c 'source ~/.zshrc && {args.command}'" # zshrc is just loaded to have some env variables ready
+    value: "/bin/zsh -c 'source ~/.zshrc && {args.command}'" # zshrc is just loaded to have some env variables ready
   environment:
     items:
       HOME:
@@ -216,35 +242,53 @@ spec:
     value: {args.image}
   imagePullPolicy:
     value: Always
-  {backofflimit}
   pvcs:
     items:
       pvc--0:
         value:
-          claimName: runai-mlo-{user_cfg['user']}-scratch
+          claimName: {scratch_name}
           existingPvc: true
           path: /mloscratch
           readOnly: false
+  ## these two lines are necessary on RCP, not on the new IC
   runAsGid:
     value: {user_cfg['gid']}
   runAsUid:
     value: {user_cfg['uid']}
+  ##
   runAsUser: 
     value: true    
   serviceType:
     value: ClusterIP
   username:
     value: {user_cfg['user']}
+  allowPrivilegeEscalation:  # allow sudo
+    value: true
 """
+
+    #### some additional flags that can be added at the end of the config
     if args.node_type:
         cfg += f"""
-  nodeType:
-    value: {args.node_type} # G10 for A100, G9 for V100 (on IC cluster)
+  nodePools:
+    value: {args.node_type} # g10 for A100, g9 for V100 (only on IC cluster)
+"""
+        if args.node_type == "g10" and not args.train:
+            # for interactive jobs on A100s (g10 nodes), we need to set the jobs preemptible
+            # see table "Types of Workloads" https://inside.epfl.ch/ic-it-docs/ic-cluster/caas/submit-jobs/
+            cfg += f"""
+  preemptible:
+    value: true
 """
     if args.host_ipc:
         cfg += f"""
   hostIpc:
     value: true
+"""
+
+    if args.train:
+        cfg += f"""
+  backoffLimit: 
+    value: {args.backofflimit}
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
@@ -253,22 +297,42 @@ spec:
         if args.dry:
             print(cfg)
         else:
+            # Run the subprocess and capture stdout and stderr
             result = subprocess.run(
                 ["kubectl", "apply", "-f", f.name],
                 # check=True,
-                capture_output=True,
-                # text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
             )
-            print(result.stdout)
-            print(result.stderr)
 
-    print("\nThe following commands may come in handy:")
-    print(f"runai exec {args.name} -it zsh # opens an interactive shell on the pod")
-    print(
-        f"runai delete job {args.name} # kills the job and removes it from the list of jobs"
-    )
-    print(
-        f"runai describe job {args.name} # shows information on the status/execution of the job"
-    )
-    print("runai list jobs # list all jobs and their status")
-    print(f"runai logs {args.name} # shows the output/logs for the job")
+            # Check if there was an error
+            if result.returncode != 0:
+                print("Error encountered:")
+                # Prettify and print the stderr
+                pprint(result.stderr)
+                exit(1)
+            else:
+                print("Output:")
+                # Prettify and print the stdout
+                print(result.stdout)
+
+                print("If the above says 'created', the job has been submitted.")
+
+                print(
+                    f"If the above says 'job unchanged', the job with name {args.name} "
+                    f"already exists (and you might need to delete it)."
+                )
+
+                print("\nThe following commands may come in handy:")
+                print(
+                    f"runai exec {args.name} -it zsh # opens an interactive shell on the pod"
+                )
+                print(
+                    f"runai delete job {args.name} # kills the job and removes it from the list of jobs"
+                )
+                print(
+                    f"runai describe job {args.name} # shows information on the status/execution of the job"
+                )
+                print("runai list jobs # list all jobs and their status")
+                print(f"runai logs {args.name} # shows the output/logs for the job")
