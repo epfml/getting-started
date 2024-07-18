@@ -110,7 +110,7 @@ sudo chown root: /usr/local/bin/runai-rcp-prod
 
 # Repeat for IC Cluster
 # for Linux: replace `macos` with `linux`
-curl -sLo /tmp/runai https://go.epfl.ch/iccluster-runai-macos
+wget --content-disposition https://go.epfl.ch/iccluster-runai-macos
 chmod +x ./runai
 sudo mv ./runai /usr/local/bin/runai-ic
 sudo chown root: /usr/local/bin/runai-ic
