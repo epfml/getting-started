@@ -1,4 +1,4 @@
-# MLO: Getting started with the EPFL Clusters
+ # MLO: Getting started with the EPFL Clusters
 This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both RCP and IC) -- so that you don't have to go through the countless documentations by yourself! We also provide scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and CLAIRE, and scripts created by Atli :)
 
 There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The RCP cluster has A100 (80GB) GPUs, while the IC cluster is equipped with older V100 (32GB) and A100 (40GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
@@ -43,6 +43,7 @@ The step-by-step instructions for first time users to quickly get a job running.
 
 > [!TIP] 
 > After completing the setup, the **TL;DR** of the interaction with the cluster (using the scripts in this repo) is:
+> * Choose a cluster and just run the command to set it up: `ic-cluster`, `rcp-cluster`, or `rcp-cluster-prod`
 > 
 > * Get a running job with one GPU that is reserved for you: `python csub.py -n sandbox`
 > 
@@ -146,6 +147,7 @@ touch user.yaml # then copy the content from templates/user_template.yaml inside
    
 3. Create a pod with 1 GPU (you may need to install pyyaml with `pip install pyyaml` first).
 ```bash
+rcp-cluster # switch to RCP cluster context
 python csub.py -n sandbox
 ```
 
@@ -196,9 +198,12 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 > **Keep your files inside your home folder**: Importantly, when a job is restarted or killed, everything inside the container folders of `~/` are lost. This is why you need to work inside `/mloscratch/homes/<your username>`. For conda and other things (e.g. `~/.zshrc`), we have set up automatic symlinks to files that are persistent on scratch.
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
+>
+>  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["rcp-caas-test", "ic-caas", "rcp-caas-prod"]`). It only works when the cluster argument matches your currently chosen cluster. 
 
 You're good to go :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
 Remember that you can switch between the two contexts of the IC cluster and RCP cluster with the command `runai config cluster <cluster-name>` as shown above -- for example, if you need a 80GB A100 GPU, use `runai config cluster rcp-caas-prod`.
+
 
 >[!CAUTION]
 > Using the cluster creates costs. Please do not forget to stop your jobs when not used!
@@ -299,7 +304,7 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas-test -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
@@ -343,8 +348,8 @@ kubectl port-forward <pod_name> 8888:8888
 ```
 
 ## Distributed training
-Newer versions of runAI (>2.13) support distributed training, meaning the ability to use run accross multiple compute nodes, even beyond the several GPUs available on one node.
-A nice [documentation to get started with distribtued jobs is available here](docs/multinode.md).
+Newer versions of runai support distributed training, meaning the ability to use run accross multiple compute nodes, even beyond the several GPUs available on one node. This is currently set up on the new RCP Prod cluster (rcp-caas-prod).
+A nice [documentation to get started with distributed jobs is available here](docs/multinode.md).
 
 # File overview of this repository
 ```bash

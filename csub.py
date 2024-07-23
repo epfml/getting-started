@@ -18,6 +18,13 @@ parser.add_argument(
     help="Job name (has to be unique in the namespace)",
 )
 parser.add_argument(
+    "-cl",
+    "--cluster",
+    type=str,
+    default="rcp-caas-test",
+    choices=["rcp-caas-test", "ic-caas", "rcp-caas-prod"],
+)
+parser.add_argument(
     "-c",
     "--command",
     type=str,
