@@ -81,7 +81,7 @@ curl -sL "https://dl.k8s.io/release/$(curl -s https://api.github.com/repos/kuber
 
 2. Setup the kube config file: Take our template file [`kubeconfig.yaml`](kubeconfig.yaml) as your config in the home folder `~/.kube/config`. Note that the file on your machine has no suffix.
 ```bash
-curl -o tst01.txt https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
+curl -o ~/.kube/config https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
 ```
 
 3. Install the run:ai CLI:
