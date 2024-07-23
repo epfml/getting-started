@@ -19,6 +19,7 @@ Content overview:
   - [1: Pre-setup (access, repository)](#1-pre-setup-access-repository)
   - [2: Setup the tools on your own machine](#2-setup-the-tools-on-your-own-machine)
   - [3: Login](#3-login)
+  - [4: Use this repo to start a job](#4-use-this-repo-to-start-a-job)
   - [5: Cloning and running your code](#5-cloning-and-running-your-code)
 - [Managing Workflows and Advanced Topics](#managing-workflows-and-advanced-topics)
   - [Using VSCODE](#using-vscode)
@@ -69,83 +70,74 @@ The following are just a bunch of commands you need to run to get started. If yo
 ## 2: Setup the tools on your own machine
 
 > [!IMPORTANT]
-> The setup below was tested on macOS with Apple Silicon. If you are using a different system, you may need to adapt the commands.
+> The setup below was tested on Linux. If you are using a different system, you may need to adapt the commands.
 > For Windows, we have no experience with the setup and thereby recommend WSL (Windows Subsystem for Linux) to run the commands.
 
-1. Install kubectl. To make sure the version matches with the clusters (status: 15.12.2023), on macOS with Apple Silicon, run the following commands. For other systems, you will need to change the URL in the command above (check https://kubernetes.io/docs/tasks/tools/install-kubectl/). Make sure that the version matches with the version of the cluster!
+1. Install kubectl. Make sure that the version matches with the version of the cluster!
 ```bash
-    # Sketch for macOS with Apple Silicon.
-    # Download a specific version (here 1.26.7 for Apple Silicon macOS)
-    curl -LO "https://dl.k8s.io/release/v1.26.7/bin/darwin/arm64/kubectl"
-    # curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" #Linux
-
-    # Give it the right permissions and move it.
-    chmod +x ./kubectl
-    sudo mv ./kubectl /usr/local/bin/kubectl
-    sudo chown root: /usr/local/bin/kubectl
+curl -sL "https://dl.k8s.io/release/$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases | grep -oP '"tag_name": "\K(v1\.29\.[0-9]+)' | sort -V | tail -n 1)/bin/linux/amd64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
 ``` 
 
-2. Setup the kube config file: Create a file in your home directory as ``~/.kube/config`` and copy the contents from the file [`kubeconfig.yaml`](kubeconfig.yaml) in this file. Note that the file on your machine has no suffix. For the updated cluster use the config file at https://wiki.rcp.epfl.ch/home/CaaS/how-to-switch-between-rcp-caas-cluster-and-ic-caas-cluster
+2. Setup the kube config file: Take our template file [`kubeconfig.yaml`](kubeconfig.yaml) as your config in the home folder `~/.kube/config`. Note that the file on your machine has no suffix.
+```bash
+curl -o  ~/.kube/config https://raw.githubusercontent.com/EduardDurech/getting-started/main/kubeconfig.yaml
+```
 
 3. Install the run:ai CLI:
-   ```bash
-      # Sketch for macOS with Apple Silicon
-      # Download the CLI from the link shown in the help section.
-      wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
-      # wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/linux #Linux
-   
-      # Give it the right permissions and move it.
-      chmod +x ./runai
-      sudo mv ./runai /usr/local/bin/runai
-      sudo chown root: /usr/local/bin/runai
-   ```
+```bash
+# Sketch for Linux
+curl -sL https://rcp-caas-prod.rcp.epfl.ch/cli/linux | sudo install /dev/stdin /usr/local/bin/runai
+```
 
 ## 3: Login
-4. Switch between contexts and login to both clusters.
-   Old
-   ```bash
-      # Switch to the IC cluster
-      runai config cluster ic-context
-      # Login to the cluster
-      runai login
-      # Check that things worked fine
-      runai list projects
-      # put your default project
-      runai config project mlo-$GASPAR_USERNAME
-      # Repeat for the RCP cluster
-      runai config cluster rcp-context
-      runai login
-      runai list projects
-      runai config project mlo-$GASPAR_USERNAME
-   ```
-   For the updated cluster use `ic-caas` and `rcp-caas-prod`
-6. Run a quick test to see that you can launch jobs:
-   ```bash
-      # Try to submit a job that mounts our shared storage and see its content.
-      runai submit \
-        --name setup-test-storage \
-        --image ubuntu \
-        --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
-        -- ls -la /mloscratch/homes
-      # Check the status of the job
-      runai describe job setup-test-storage
+1. Switch between contexts and login to both clusters.
+```bash
+# Switch to the IC cluster
+runai config cluster ic-caas
+# Login to the cluster
+runai login
+# Check that things worked fine
+runai list projects
+# Put default project
+runai config project mlo-$GASPAR_USERNAME
 
-      # Check its logs to see that it ran.
-      runai logs setup-test-storage
+# Repeat for the RCP cluster
+runai config cluster rcp-caas-prod
+runai login
+runai list projects
+runai config project mlo-$GASPAR_USERNAME
+```
 
-      # Delete the successful jobs
-      runai delete jobs setup-test-storage
-    ```
+2. Run a quick test to see that you can launch jobs:
+```bash
+# Let's use the normal RCP cluster
+runai config cluster rcp-caas-prod
+runai login
+# Try to submit a job that mounts our shared storage and see its content.
+# (side note: on ic-caas, the pvc is called runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch, so the arg below has to be changed)
+runai submit \
+  --name setup-test-storage \
+  --image ubuntu \
+  --pvc mlo-scratch:/mloscratch \
+  -- ls -la /mloscratch/homes
+# Check the status of the job
+runai describe job setup-test-storage
+
+# Check its logs to see that it ran.
+runai logs setup-test-storage
+
+# Delete the successful jobs
+runai delete jobs setup-test-storage
+```
 
 The `runai submit` command already suffices to run jobs. If that is fine for you, you can jump to the section on using provided images and the run:ai CLI [here](#alternative-workflow-using-the-runai-cli-and-base-docker-images-with-pre-installed-packages).
 
 However, we provide a few scripts in this repository to make your life easier to get started. 
 
 ## 4: Use this repo to start a job
-
 1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml`.
 ```bash
-git clone https://github.com/epfml/getting-started.git
+git clone https://github.com/EduardDurech/getting-started.git
 cd getting-started
 touch user.yaml # then copy the content from templates/user_template.yaml inside here and update
 ```
@@ -171,7 +163,7 @@ runai exec sandbox -it -- zsh
 6. If everything worked correctly, you should be inside a terminal on the cluster!
 
 ## 5: Cloning and running your code
-1. Clone your fork of your GitHub repository into the pod **inside your home folder**.
+1. Clone your fork of your GitHub repository (where you have your experiment code) into the pod **inside your home folder**.
 ```bash
 # Inside the pod
 cd /mloscratch/homes/<your_username>
@@ -201,12 +193,12 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 >
 > Note that your pods **can be killed anytime**. This means you might need to restart an experiment (with the `python csub.py` command we give above). You can see the status of your jobs with `runai list`. If a job has status "Failed", you have to delete it via `runai delete job sandbox` before being able to start the same job again.
 > 
-> **Keep your files inside your home folder**: Importantly, when a job is restarted or killed, everything inside the container folders of `~/` are lost. This is why you need to work inside `/mloscratch/homes/<your username>`. For conda and other things (e.g. `~/.zshrc`, we have set up automatic symlinks to files that are persistent on scratch.
+> **Keep your files inside your home folder**: Importantly, when a job is restarted or killed, everything inside the container folders of `~/` are lost. This is why you need to work inside `/mloscratch/homes/<your username>`. For conda and other things (e.g. `~/.zshrc`), we have set up automatic symlinks to files that are persistent on scratch.
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
 
 You're good to go :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
-Remember that you can switch between the two contexts of the IC cluster and RCP cluster with the command `runai config cluster <cluster-name>` as shown above -- for example, if you need a 80GB A100 GPU, use the RCP cluster. 
+Remember that you can switch between the two contexts of the IC cluster and RCP cluster with the command `runai config cluster <cluster-name>` as shown above -- for example, if you need a 80GB A100 GPU, use `runai config cluster rcp-caas-prod`.
 
 >[!CAUTION]
 > Using the cluster creates costs. Please do not forget to stop your jobs when not used!
@@ -231,8 +223,8 @@ runai delete job pod_name # kills the job and removes it from the list of jobs
 runai describe job pod_name # shows information on the status/execution of the job
 runai list jobs # list all jobs and their status 
 runai logs pod_name # shows the output/logs for the job
-runai config cluster ic-context # switch to IC cluster context
-runai config cluster rcp-context # switch to RCP cluster context
+runai config cluster ic-caas # switch to IC cluster context
+runai config cluster rcp-caas-prod # switch to RCP cluster context
 ```
 Some commands that might come in handy (credits to Thijs):
 ```bash
