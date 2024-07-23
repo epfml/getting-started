@@ -199,7 +199,7 @@ spec:
   environment:
     items:
       HOME:
-        value: "/home/{user_cfg['user']}"
+        value: "{working_dir}"
       NB_USER:
         value: {user_cfg['user']}
       NB_UID:
