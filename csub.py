@@ -41,7 +41,7 @@ parser.add_argument(
 parser.add_argument(
     "-g",
     "--gpus",
-    type=int,
+    type=float,
     default=1,
     required=False,
     help="The number of GPUs requested (default 1)",
@@ -132,8 +132,6 @@ if __name__ == "__main__":
     with open(args.user, "r") as file:
         user_cfg = yaml.safe_load(file)
 
-    scratch_name = f"runai-mlo-{user_cfg['user']}-scratch"
-
     # get current cluster and make sure argument matches
     current_cluster = subprocess.run(
         ["kubectl", "config", "current-context"],
@@ -143,15 +141,9 @@ if __name__ == "__main__":
     ).stdout.strip()
 
     if current_cluster == "rcp-caas-prod":
-        runai_cli_version = "2.16.55"
         scratch_name = "mlo-scratch"
-    elif current_cluster == "rcp-caas-test":
-        runai_cli_version = "2.9.25"
-    elif current_cluster == "ic-caas":
-        runai_cli_version = "2.16.52"
-    assert (
-        current_cluster == args.cluster
-    ), f"Current cluster is {current_cluster}, but you specified {args.cluster}. Use --cluster {current_cluster}"
+    else:
+        scratch_name = f"runai-mlo-{user_cfg['user']}-scratch"
 
     if args.name is None:
         args.name = f"{user_cfg['user']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -195,8 +187,6 @@ if __name__ == "__main__":
 apiVersion: run.ai/v2alpha1
 kind: {workload_kind}
 metadata:
-  annotations:
-    runai-cli-version: {runai_cli_version}
   labels:
     PreviousJob: "true"
   name: {args.name}
@@ -204,12 +194,14 @@ metadata:
 spec:
   name:
     value: {args.name}
-  arguments: 
+  arguments:
     value: "/bin/zsh -c 'source ~/.zshrc && {args.command}'" # zshrc is just loaded to have some env variables ready
+  workingDir:
+    value: {working_dir}
   environment:
     items:
       HOME:
-        value: "/home/{user_cfg['user']}"
+        value: "{working_dir}"
       NB_USER:
         value: {user_cfg['user']}
       NB_UID:
@@ -256,8 +248,8 @@ spec:
   runAsUid:
     value: {user_cfg['uid']}
   ##
-  runAsUser: 
-    value: true    
+  runAsUser:
+    value: true
   serviceType:
     value: ClusterIP
   username:
@@ -287,7 +279,7 @@ spec:
 
     if args.train:
         cfg += f"""
-  backoffLimit: 
+  backoffLimit:
     value: {args.backofflimit}
 """
 

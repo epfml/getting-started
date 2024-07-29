@@ -43,7 +43,6 @@ The step-by-step instructions for first time users to quickly get a job running.
 
 > [!TIP] 
 > After completing the setup, the **TL;DR** of the interaction with the cluster (using the scripts in this repo) is:
-> * Choose a cluster and just run the command to set it up: `ic-cluster`, `rcp-cluster`, or `rcp-cluster-prod`
 > 
 > * Get a running job with one GPU that is reserved for you: `python csub.py -n sandbox`
 > 
@@ -71,91 +70,55 @@ The following are just a bunch of commands you need to run to get started. If yo
 ## 2: Setup the tools on your own machine
 
 > [!IMPORTANT]
-> The setup below was tested on macOS with Apple Silicon. If you are using a different system, you may need to adapt the commands.
+> The setup below was tested on Linux. If you are using a different system, you may need to adapt the commands.
 > For Windows, we have no experience with the setup and thereby recommend WSL (Windows Subsystem for Linux) to run the commands.
 
-1. Install kubectl. To make sure the version matches with the clusters (status: 15.12.2023), on macOS with Apple Silicon, run the following commands. For other systems, you will need to change the URL in the command above (check https://kubernetes.io/docs/tasks/tools/install-kubectl/). Make sure that the version matches with the version of the cluster!
+1. Install kubectl. Make sure that the version matches with the version of the cluster!
 ```bash
-# Sketch for macOS with Apple Silicon.
-# Download a specific version (here v1.29.6 for Apple Silicon macOS)
-curl -LO "https://dl.k8s.io/release/v1.29.6/bin/darwin/arm64/kubectl"
-# Linux: curl -LO "https://dl.k8s.io/release/v1.29.6/bin/linux/amd64/kubectl"
-# Give it the right permissions and move it.
-chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin/kubectl
-sudo chown root: /usr/local/bin/kubectl
+curl -sL "https://dl.k8s.io/release/$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases | grep -oP '"tag_name": "\K(v1\.29\.[0-9]+)' | sort -V | tail -n 1)/bin/linux/amd64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
 ``` 
 
 2. Setup the kube config file: Take our template file [`kubeconfig.yaml`](kubeconfig.yaml) as your config in the home folder `~/.kube/config`. Note that the file on your machine has no suffix.
 ```bash
-curl -o  ~/.kube/config https://raw.githubusercontent.com/epfml/getting-started/main/kubeconfig.yaml
+curl -o ~/.kube/config https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
 ```
 
-3. Install the run:ai CLI for RCP (two RCP clusters) and IC:
+3. Install the run:ai CLI:
 ```bash
-# Sketch for macOS with Apple Silicon
-# Download the CLI from the link shown in the help section.
-# for Linux: replace `darwin` with `linux`
-wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
-# Give it the right permissions and move it.
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-rcp
-sudo chown root: /usr/local/bin/runai-rcp
-
-# Repeat for RCP Prod Cluster  
-wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-rcp-prod
-sudo chown root: /usr/local/bin/runai-rcp-prod
-
-# Repeat for IC Cluster
-# for Linux: replace `macos` with `linux`
-wget --content-disposition https://go.epfl.ch/iccluster-runai-macos
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-ic
-sudo chown root: /usr/local/bin/runai-ic
+# Sketch for Linux
+curl -sL https://rcp-caas-prod.rcp.epfl.ch/cli/linux | sudo install /dev/stdin /usr/local/bin/runai
 ```
 
 ## 3: Login
 1. Switch between contexts and login to both clusters.
 ```bash
 # Switch to the IC cluster
-runai-ic config cluster ic-caas
+runai config cluster ic-caas
 # Login to the cluster
-runai-ic login
+runai login
 # Check that things worked fine
-runai-ic list projects
+runai list projects
 # Put default project
-runai-ic config project mlo-$GASPAR_USERNAME
+runai config project mlo-$GASPAR_USERNAME
+
 # Repeat for the RCP cluster
-runai-rcp config cluster rcp-caas-test
-runai-rcp login
-runai-rcp list projects
-runai-rcp config project mlo-$GASPAR_USERNAME
+runai config cluster rcp-caas-prod
+runai login
+runai list projects
+runai config project mlo-$GASPAR_USERNAME
 ```
 
-2. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
-   litte helper functions (see [template/cluster_switch](template/cluster_switch.sh)) that you can use to switch between the clusters.
-   To have these functions available in every terminal session, we add them to your `.zshrc` or `.bashrc` file. 
-   On the newest versions of macOS (which this guide is written with), put in your username for `<your username>` below and run the following commands:
-```bash
-export GASPAR_USERNAME=<your username>
-# on linux, replace .zshrc with .bashrc
-echo "export GASPAR_USERNAME=$GASPAR_USERNAME" >> ~/.zshrc
-curl -s https://raw.githubusercontent.com/epfml/getting-started/main/template/cluster_switch.sh | tee -a ~/.zshrc
-source ~/.zshrc
-```
-
-3. Run a quick test to see that you can launch jobs:
+2. Run a quick test to see that you can launch jobs:
 ```bash
 # Let's use the normal RCP cluster
-rcp-cluster
+runai config cluster rcp-caas-prod
+runai login
 # Try to submit a job that mounts our shared storage and see its content.
-# (side note: on the new rcp-prod, the pvc is called mlo-scratch, so the arg below has to be changed)
+# (side note: on ic-caas, the pvc is called runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch, so the arg below has to be changed)
 runai submit \
   --name setup-test-storage \
   --image ubuntu \
-  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
+  --pvc mlo-scratch:/mloscratch \
   -- ls -la /mloscratch/homes
 # Check the status of the job
 runai describe job setup-test-storage
@@ -174,7 +137,7 @@ However, we provide a few scripts in this repository to make your life easier to
 ## 4: Use this repo to start a job
 1. Clone this repository and create a `user.yaml` file in the root folder of the repo using the template in `templates/user_template.yaml`.
 ```bash
-git clone https://github.com/epfml/getting-started.git
+git clone -b IC-RCP_08-24 https://github.com/EduardDurech/getting-started.git
 cd getting-started
 touch user.yaml # then copy the content from templates/user_template.yaml inside here and update
 ```
@@ -183,7 +146,6 @@ touch user.yaml # then copy the content from templates/user_template.yaml inside
    
 3. Create a pod with 1 GPU (you may need to install pyyaml with `pip install pyyaml` first).
 ```bash
-rcp-cluster # switch to RCP cluster context
 python csub.py -n sandbox
 ```
 
@@ -234,10 +196,10 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 > **Keep your files inside your home folder**: Importantly, when a job is restarted or killed, everything inside the container folders of `~/` are lost. This is why you need to work inside `/mloscratch/homes/<your username>`. For conda and other things (e.g. `~/.zshrc`), we have set up automatic symlinks to files that are persistent on scratch.
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
->
->  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["rcp-caas-test", "ic-caas", "rcp-caas-prod"]`). It only works when the cluster argument matches your currently chosen cluster. 
 
-You're good to go now! :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
+You're good to go :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
+Remember that you can switch between the two contexts of the IC cluster and RCP cluster with the command `runai config cluster <cluster-name>` as shown above -- for example, if you need a 80GB A100 GPU, use `runai config cluster rcp-caas-prod`.
+
 
 >[!CAUTION]
 > Using the cluster creates costs. Please do not forget to stop your jobs when not used!
@@ -262,8 +224,8 @@ runai delete job pod_name # kills the job and removes it from the list of jobs
 runai describe job pod_name # shows information on the status/execution of the job
 runai list jobs # list all jobs and their status 
 runai logs pod_name # shows the output/logs for the job
-ic-cluster # switch to IC cluster context
-rcp-cluster # switch to RCP cluster context
+runai config cluster ic-caas # switch to IC cluster context
+runai config cluster rcp-caas-prod # switch to RCP cluster context
 ```
 Some commands that might come in handy (credits to Thijs):
 ```bash
@@ -338,7 +300,7 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas-test -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+python csub.py --n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
