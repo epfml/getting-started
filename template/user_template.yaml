@@ -4,6 +4,7 @@ uid: <enter uid>
 group: MLO-unit
 gid: 75545
 wandb_api_key: <enter api key>
+hf_token: <your token here>
 working_dir: /mloscratch/homes/<enter username>
 symlinks: # list of symlinks to create (enter 'dir' or 'file' and the path)')
   .ssh: [dir, .ssh]

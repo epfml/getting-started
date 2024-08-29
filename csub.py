@@ -119,6 +119,11 @@ parser.add_argument(
     action="store_true",
     help="do not create symlinks to the user's home directory",
 )
+parser.add_argument(
+    "--large_shm",
+    action="store_true",
+    help="use large shared memory /dev/shm for the job",
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -143,7 +148,7 @@ if __name__ == "__main__":
     ).stdout.strip()
 
     if current_cluster == "rcp-caas-prod":
-        runai_cli_version = "2.16.55"
+        runai_cli_version = "2.16.63"
         scratch_name = "mlo-scratch"
     elif current_cluster == "rcp-caas-test":
         runai_cli_version = "2.9.25"
@@ -230,6 +235,8 @@ spec:
         value: {user_cfg['wandb_api_key']}
       HF_HOME:
         value: /mloscratch/hf_cache
+      HF_TOKEN:
+        value: {user_cfg['hf_token']}
       EPFML_LDAP:
         value: {user_cfg['user']}
   gpu:
@@ -289,6 +296,11 @@ spec:
         cfg += f"""
   backoffLimit: 
     value: {args.backofflimit}
+"""
+    if args.large_shm:
+        cfg += f"""
+  largeShm:
+    value: true
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
