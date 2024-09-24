@@ -148,7 +148,7 @@ if __name__ == "__main__":
     ).stdout.strip()
 
     if current_cluster == "rcp-caas-prod":
-        runai_cli_version = "2.16.63"
+        runai_cli_version = "2.16.70"
         scratch_name = "mlo-scratch"
     elif current_cluster == "rcp-caas-test":
         runai_cli_version = "2.9.25"
