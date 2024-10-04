@@ -71,22 +71,30 @@ The following are just a bunch of commands you need to run to get started. If yo
 
 > [!IMPORTANT]
 > The setup below was tested on Linux. If you are using a different system, you may need to adapt the commands.
-> For Windows, we have no experience with the setup and thereby recommend WSL (Windows Subsystem for Linux) to run the commands.
+> For Windows, either use WSL (Windows Subsystem for Linux) and run the commands for Linux or, if you want to connect Windows VS Code to the cluster, run the command for Windows in PowerShell with Administrator privileges
 
+### Linux
 1. Install kubectl. Make sure that the version matches with the version of the cluster!
 ```bash
 curl -sL "https://dl.k8s.io/release/$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases | grep -oP '"tag_name": "\K(v1\.29\.[0-9]+)' | sort -V | tail -n 1)/bin/linux/amd64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
-``` 
-
+```
 2. Setup the kube config file: Take our template file [`kubeconfig.yaml`](kubeconfig.yaml) as your config in the home folder `~/.kube/config`. Note that the file on your machine has no suffix.
 ```bash
 curl -o ~/.kube/config https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
 ```
-
 3. Install the run:ai CLI:
 ```bash
-# Sketch for Linux
 curl -sL https://rcp-caas-prod.rcp.epfl.ch/cli/linux | sudo install /dev/stdin /usr/local/bin/runai
+```
+### Windows Powershell as Administrator
+```powershell
+$kubectlPath="$env:ProgramFiles\kubectl";if(-not(Test-Path $kubectlPath)){New-Item -ItemType Directory -Path $kubectlPath}; Invoke-WebRequest -Uri "https://dl.k8s.io/release/$(((Invoke-RestMethod -Uri 'https://api.github.com/repos/kubernetes/kubernetes/releases') | Where-Object { $_.tag_name -match 'v1\.29\.[0-9]+' } | Sort-Object tag_name | Select-Object -Last 1).tag_name)/bin/windows/amd64/kubectl.exe" -OutFile "$kubectlPath\kubectl.exe"; [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$kubectlPath", [System.EnvironmentVariableTarget]::Machine)
+```
+```powershell
+$kubeconfigPath="$HOME/.kube";if(-not(Test-Path $kubeconfigPath)){New-Item -ItemType Directory -Path $kubeconfigPath}; curl -o "$kubeconfigPath\config" https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
+```
+```powershell
+$runaiPath="$env:ProgramFiles\runai";if(-not(Test-Path $runaiPath)){New-Item -ItemType Directory -Path $runaiPath}; Invoke-WebRequest -Uri "https://rcp-caas-prod.rcp.epfl.ch/cli/windows" -OutFile "$runaiPath\runai.exe"; [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$runaiPath", [System.EnvironmentVariableTarget]::Machine)
 ```
 
 ## 3: Login
