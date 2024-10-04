@@ -196,8 +196,8 @@ spec:
     value: {args.name}
   arguments:
     value: "/bin/zsh -c 'source ~/.zshrc && {args.command}'" # zshrc is just loaded to have some env variables ready
-  workingDir:
-    value: {working_dir}
+#  workingDir:
+#    value: {working_dir} #TODO: add `cd ~` to ~/.*rc
   environment:
     items:
       HOME:
