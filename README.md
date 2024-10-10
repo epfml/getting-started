@@ -63,7 +63,7 @@ The step-by-step instructions for first time users to quickly get a job running.
 
 **Prepare your code:** While you are waiting to get access, create a GitHub repository where you will implement your code. Irrespective of our cluster or this guide, it is best practice to keep track of your code with a GitHub repo.
 
-**Prepare Weights and Biases:** For logging the results of your experiments, you can use [Weights and Biases](https://wandb.ai/). Create an account if you don't already have one. You will need an API key to later log your experiments.
+**Prepare Weights and Biases and HuggingFace:** For logging the results of your experiments, you can use [Weights and Biases](https://wandb.ai). Create an account if you don't already have one. You will need an API key to log your experiments. The same goes for the [Huggingface Hub](https://huggingface.co) if you want to use their hosted models.
 
 The following are just a bunch of commands you need to run to get started. If you do not understand them in detail, you can copy-paste them into your terminal :)
 
@@ -150,7 +150,7 @@ cd getting-started
 touch user.yaml # then copy the content from templates/user_template.yaml inside here and update
 ```
 
-2. Fill in `user.yaml` with your username, userID in `user.yaml` and also update the working_dir with your username. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. **Also important for logging** (if you want to use wandb), get an API key from [Weights and Biases](https://wandb.ai/) and add it to the yaml.
+2. Fill in `user.yaml` with your username, userID in `user.yaml` and also update the working_dir with your username. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. **Important for logging** (if you want to use wandb), get an API key from [Weights and Biases](https://wandb.ai/) and add it to the yaml. There's also a field for the Huggingface token (like an API key).
    
 3. Create a pod with 1 GPU (you may need to install pyyaml with `pip install pyyaml` first).
 ```bash
