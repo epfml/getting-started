@@ -104,10 +104,10 @@ parser.add_argument(
     "--node_type",
     type=str,
     default="",
-    choices=["", "g9", "g10"],
+    choices=["", "g9", "g10", "h100"],
     help="node type to run on (default is empty, which means any node). \
-          only exists for IC cluster: g9 for V100, g10 for A100. \
-          leave empty for RCP",
+          IC cluster: g9 for V100, g10 for A100. \
+          RCP-Prod cluster: h100 for H100",
 )
 parser.add_argument(
     "--host_ipc",
@@ -118,6 +118,11 @@ parser.add_argument(
     "--no_symlinks",
     action="store_true",
     help="do not create symlinks to the user's home directory",
+)
+parser.add_argument(
+    "--large_shm",
+    action="store_true",
+    help="use large shared memory /dev/shm for the job",
 )
 
 if __name__ == "__main__":
@@ -222,6 +227,8 @@ spec:
         value: {user_cfg['wandb_api_key']}
       HF_HOME:
         value: /mloscratch/hf_cache
+      HF_TOKEN:
+        value: {user_cfg['hf_token']}
       EPFML_LDAP:
         value: {user_cfg['user']}
   gpu:
@@ -259,15 +266,15 @@ spec:
 """
 
     #### some additional flags that can be added at the end of the config
-    if args.node_type:
+    if args.node_type in ["g10", "g9", "h100"]:
         cfg += f"""
   nodePools:
     value: {args.node_type} # g10 for A100, g9 for V100 (only on IC cluster)
 """
-        if args.node_type == "g10" and not args.train:
-            # for interactive jobs on A100s (g10 nodes), we need to set the jobs preemptible
-            # see table "Types of Workloads" https://inside.epfl.ch/ic-it-docs/ic-cluster/caas/submit-jobs/
-            cfg += f"""
+    if args.node_type in ["g10", "h100"] and not args.train:
+        # for interactive jobs on A100s (g10 nodes), we need to set the jobs preemptible
+        # see table "Types of Workloads" https://inside.epfl.ch/ic-it-docs/ic-cluster/caas/submit-jobs/
+        cfg += f"""
   preemptible:
     value: true
 """
@@ -281,6 +288,11 @@ spec:
         cfg += f"""
   backoffLimit:
     value: {args.backofflimit}
+"""
+    if args.large_shm:
+        cfg += f"""
+  largeShm:
+    value: true
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
