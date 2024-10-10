@@ -76,7 +76,7 @@ The following are just a bunch of commands you need to run to get started. If yo
 ### Linux
 1. Install kubectl. Make sure that the version matches with the version of the cluster!
 ```bash
-curl -sL "https://dl.k8s.io/release/$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases | grep -oP '"tag_name": "\K(v1\.29\.[0-9]+)' | sort -V | tail -n 1)/bin/linux/amd64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
+curl -sL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable-1.29.txt)/bin/linux/amd64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
 ```
 2. Setup the kube config file: Take our template file [`kubeconfig.yaml`](kubeconfig.yaml) as your config in the home folder `~/.kube/config`. Note that the file on your machine has no suffix.
 ```bash
@@ -88,13 +88,28 @@ curl -sL https://rcp-caas-prod.rcp.epfl.ch/cli/linux | sudo install /dev/stdin /
 ```
 ### Windows Powershell as Administrator
 ```powershell
-$kubectlPath="$env:ProgramFiles\kubectl";if(-not(Test-Path $kubectlPath)){New-Item -ItemType Directory -Path $kubectlPath}; Invoke-WebRequest -Uri "https://dl.k8s.io/release/$(((Invoke-RestMethod -Uri 'https://api.github.com/repos/kubernetes/kubernetes/releases') | Where-Object { $_.tag_name -match 'v1\.29\.[0-9]+' } | Sort-Object tag_name | Select-Object -Last 1).tag_name)/bin/windows/amd64/kubectl.exe" -OutFile "$kubectlPath\kubectl.exe"; [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$kubectlPath", [System.EnvironmentVariableTarget]::Machine)
+$kubectlPath="$env:ProgramFiles\kubectl";if(-not(Test-Path $kubectlPath)){New-Item -ItemType Directory -Path $kubectlPath}; curl.exe -L "https://dl.k8s.io/release/$(curl.exe -sL https://dl.k8s.io/release/stable-1.29.txt)/bin/windows/amd64/kubectl.exe" -o "$kubectlPath\kubectl.exe"; [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$kubectlPath", [System.EnvironmentVariableTarget]::Machine)
 ```
 ```powershell
-$kubeconfigPath="$HOME/.kube";if(-not(Test-Path $kubeconfigPath)){New-Item -ItemType Directory -Path $kubeconfigPath}; curl -o "$kubeconfigPath\config" https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
+$kubeconfigPath="$HOME/.kube";if(-not(Test-Path $kubeconfigPath)){New-Item -ItemType Directory -Path $kubeconfigPath}; curl.exe "https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml" -o "$kubeconfigPath\config"
 ```
 ```powershell
-$runaiPath="$env:ProgramFiles\runai";if(-not(Test-Path $runaiPath)){New-Item -ItemType Directory -Path $runaiPath}; Invoke-WebRequest -Uri "https://rcp-caas-prod.rcp.epfl.ch/cli/windows" -OutFile "$runaiPath\runai.exe"; [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$runaiPath", [System.EnvironmentVariableTarget]::Machine)
+$runaiPath="$env:ProgramFiles\runai";if(-not(Test-Path $runaiPath)){New-Item -ItemType Directory -Path $runaiPath}; curl.exe -L "https://rcp-caas-prod.rcp.epfl.ch/cli/windows" -o "$runaiPath\runai.exe"; [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$runaiPath", [System.EnvironmentVariableTarget]::Machine)
+```
+### Mac
+#### Intel
+```bash
+curl -sL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable-1.29.txt)/bin/darwin/amd64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
+```
+#### Apple silicon
+```bash
+curl -sL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable-1.29.txt)/bin/darwin/arm64/kubectl" | sudo install /dev/stdin /usr/local/bin/kubectl
+```
+```bash
+curl -o ~/.kube/config https://raw.githubusercontent.com/EduardDurech/getting-started/IC-RCP_08-24/kubeconfig.yaml
+```
+```bash
+curl -sL https://rcp-caas-prod.rcp.epfl.ch/cli/darwin | sudo install /dev/stdin /usr/local/bin/runai
 ```
 
 ## 3: Login
