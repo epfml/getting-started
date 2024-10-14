@@ -5,9 +5,9 @@ function ic-cluster {
     runai config project mlo-$GASPAR_USERNAME
 }
 
-function rcp-prod-cluster {
-    alias runai=runai-rcp-prod
+function rcp-cluster {
+    alias runai=runai-rcp
     # This is actually changing the context not the cluster ...
-    runai config cluster rcp-caas-prod
+    runai config cluster rcp-caas
     runai config project mlo-$GASPAR_USERNAME
 }
