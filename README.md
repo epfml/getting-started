@@ -96,14 +96,8 @@ curl -o  ~/.kube/config https://raw.githubusercontent.com/epfml/getting-started/
 # Sketch for macOS with Apple Silicon
 # Download the CLI from the link shown in the help section.
 # for Linux: replace `darwin` with `linux`
-wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
-# Give it the right permissions and move it.
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-rcp
-sudo chown root: /usr/local/bin/runai-rcp
-
-# Repeat for RCP Prod Cluster  
 wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
+# Give it the right permissions and move it.
 chmod +x ./runai
 sudo mv ./runai /usr/local/bin/runai-rcp-prod
 sudo chown root: /usr/local/bin/runai-rcp-prod
@@ -128,7 +122,7 @@ runai-ic list projects
 # Put default project
 runai-ic config project mlo-$GASPAR_USERNAME
 # Repeat for the RCP cluster
-runai-rcp config cluster rcp-caas-test
+runai-rcp config cluster rcp-caas-prod
 runai-rcp login
 runai-rcp list projects
 runai-rcp config project mlo-$GASPAR_USERNAME
@@ -235,7 +229,7 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
 >
->  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["rcp-caas-test", "ic-caas", "rcp-caas-prod"]`). It only works when the cluster argument matches your currently chosen cluster. 
+>  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["ic-caas", "rcp-caas-prod"]`). It only works when the cluster argument matches your currently chosen cluster. 
 
 You're good to go now! :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
 
@@ -338,7 +332,7 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas-test -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas-prod -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 

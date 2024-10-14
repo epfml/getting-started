@@ -21,8 +21,8 @@ parser.add_argument(
     "-cl",
     "--cluster",
     type=str,
-    default="rcp-caas-test",
-    choices=["rcp-caas-test", "ic-caas", "rcp-caas-prod"],
+    default="rcp-caas-prod",
+    choices=["ic-caas", "rcp-caas-prod"],
 )
 parser.add_argument(
     "-c",
@@ -148,10 +148,9 @@ if __name__ == "__main__":
     ).stdout.strip()
 
     if current_cluster == "rcp-caas-prod":
+        # the latest version can be found on https://wiki.rcp.epfl.ch/home/CaaS/FAQ/how-to-prepare-environment
         runai_cli_version = "2.16.70"
         scratch_name = "mlo-scratch"
-    elif current_cluster == "rcp-caas-test":
-        runai_cli_version = "2.9.25"
     elif current_cluster == "ic-caas":
         runai_cli_version = "2.16.52"
     assert (
