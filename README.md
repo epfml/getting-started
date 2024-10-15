@@ -141,8 +141,7 @@ runai login
 runai submit \
   --name setup-test-storage \
   --image ubuntu \
-  --pvc mlo-scratch:/mloscratch \
-  -- ls -la /mloscratch/homes
+  --pvc mlo-scratch:/mloscratch
 # Check the status of the job
 runai describe job setup-test-storage
 
