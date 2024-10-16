@@ -43,7 +43,7 @@ The step-by-step instructions for first time users to quickly get a job running.
 
 > [!TIP] 
 > After completing the setup, the **TL;DR** of the interaction with the cluster (using the scripts in this repo) is:
-> * Choose a cluster and just run the command to set it up: `ic-cluster`, `rcp-cluster`, or `rcp-cluster-prod`
+> * Choose a cluster and just run the command to set it up: `ic-cluster` or `rcp-cluster`
 > 
 > * Get a running job with one GPU that is reserved for you: `python csub.py -n sandbox`
 > 
@@ -96,17 +96,11 @@ curl -o  ~/.kube/config https://raw.githubusercontent.com/epfml/getting-started/
 # Sketch for macOS with Apple Silicon
 # Download the CLI from the link shown in the help section.
 # for Linux: replace `darwin` with `linux`
-wget --content-disposition https://rcp-caas-test.rcp.epfl.ch/cli/darwin
+wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
 # Give it the right permissions and move it.
 chmod +x ./runai
 sudo mv ./runai /usr/local/bin/runai-rcp
 sudo chown root: /usr/local/bin/runai-rcp
-
-# Repeat for RCP Prod Cluster  
-wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-rcp-prod
-sudo chown root: /usr/local/bin/runai-rcp-prod
 
 # Repeat for IC Cluster
 # for Linux: replace `macos` with `linux`
@@ -128,7 +122,7 @@ runai-ic list projects
 # Put default project
 runai-ic config project mlo-$GASPAR_USERNAME
 # Repeat for the RCP cluster
-runai-rcp config cluster rcp-caas-test
+runai-rcp config cluster rcp-caas
 runai-rcp login
 runai-rcp list projects
 runai-rcp config project mlo-$GASPAR_USERNAME
@@ -151,11 +145,10 @@ source ~/.zshrc
 # Let's use the normal RCP cluster
 rcp-cluster
 # Try to submit a job that mounts our shared storage and see its content.
-# (side note: on the new rcp-prod, the pvc is called mlo-scratch, so the arg below has to be changed)
 runai submit \
   --name setup-test-storage \
   --image ubuntu \
-  --pvc runai-mlo-$GASPAR_USERNAME-scratch:/mloscratch \
+  --pvc mlo-scratch:/mloscratch \
   -- ls -la /mloscratch/homes
 # Check the status of the job
 runai describe job setup-test-storage
@@ -235,7 +228,7 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
 >
->  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster`, `rcp-cluster` and `rcp-cluster-prod`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["rcp-caas-test", "ic-caas", "rcp-caas-prod"]`). It only works when the cluster argument matches your currently chosen cluster. 
+>  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster` and `rcp-cluster`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["ic-caas", "rcp-caas"]`). It only works when the cluster argument matches your currently chosen cluster. 
 
 You're good to go now! :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
 
@@ -338,7 +331,7 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas-test -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
@@ -382,7 +375,7 @@ kubectl port-forward <pod_name> 8888:8888
 ```
 
 ## Distributed training
-Newer versions of runai support distributed training, meaning the ability to use run accross multiple compute nodes, even beyond the several GPUs available on one node. This is currently set up on the new RCP Prod cluster (rcp-caas-prod).
+Newer versions of runai support distributed training, meaning the ability to use run accross multiple compute nodes, even beyond the several GPUs available on one node. This is currently set up on the new RCP Prod cluster (rcp-caas).
 A nice [documentation to get started with distributed jobs is available here](docs/multinode.md).
 
 # File overview of this repository
