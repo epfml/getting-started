@@ -1,7 +1,7 @@
  # MLO: Getting started with the EPFL Clusters
 This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both RCP and IC) -- so that you don't have to go through the countless documentations by yourself! We also provide scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and CLAIRE, and scripts created by Atli :)
 
-There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The RCP cluster has A100 (80GB) GPUs, while the IC cluster is equipped with older V100 (32GB) and A100 (40GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
+There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The RCP cluster has A100 (80GB), H100 (80GB) and V100 GPUs, while the IC cluster is equipped with older V100 (32GB) and A100 (40GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
 
 For starters, we recommend you to go through the [minimal basic setup](#minimal-basic-setup) first and then read the [important notes](#important-notes-and-workflow). 
 
