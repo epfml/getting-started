@@ -69,7 +69,7 @@ The script uses the run:ai yaml API. You can find the documentation (which field
 
 <details>
 <summary><i> I get some permission error such as PermissionError: [Errno 13] Permission denied: '/mloscratch/hf_cache/...`. </i> </summary>
-This is probably related to the user and group permissions. Two things: for containers, make sure your user id is yours and the group id is 75545 (which stands for the runai-mlo group).
+This is probably related to the user and group permissions. Two things: for containers, make sure your user id is yours and the group id is 83070 (which stands for the runai-mlo group).
 Also, please add the following line to your .bashrc or .zshrc: umask 007 (e.g. via echo "umask 007" >> ~/.zshrc. Make sure that this is persistent or always done for all containers you use).
 If the problem persists, please contact us in the #it or #cluster channel. 
 
