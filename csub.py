@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     if current_cluster == "rcp-caas":
         # the latest version can be found on https://wiki.rcp.epfl.ch/home/CaaS/FAQ/how-to-prepare-environment
-        runai_cli_version = "2.16.70"
+        runai_cli_version = "2.18.94"
         scratch_name = "mlo-scratch"
     elif current_cluster == "ic-caas":
         runai_cli_version = "2.16.52"
