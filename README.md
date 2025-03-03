@@ -172,7 +172,7 @@ cd getting-started
 touch user.yaml # then copy the content from templates/user_template.yaml inside here and update
 ```
 
-2. Fill in `user.yaml` with your username, userID in `user.yaml` and also update the working_dir with your username. You can find this information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. **Important for logging** (if you want to use wandb), get an API key from [Weights and Biases](https://wandb.ai/) and add it to the yaml. There's also a field for the Huggingface token (like an API key).
+2. Fill in `user.yaml` with your username, userID in `user.yaml` and also update the working_dir with your username. **Do not change anything else in the yaml file**. You can find your information in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele) under “Administrative data”. **Important for logging** (if you want to use wandb), get an API key from [Weights and Biases](https://wandb.ai/) and add it to the yaml. There's also a field for the Huggingface token (like an API key).
    
 3. Create a pod with 1 GPU (you may need to install pyyaml with `pip install pyyaml` first).
 ```bash
