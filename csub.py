@@ -243,7 +243,7 @@ if __name__ == "__main__":
                         "SYMLINK_PATHS": {"value": symlink_paths},
                         "SYMLINK_TYPES": {"value": symlink_types},
                         "WANDB_API_KEY": {"value": user_cfg["wandb_api_key"]},
-                        "HF_HOME": {"value": "/mloscratch/dremov/hf_cache"},
+                        "HF_HOME": {"value": "/mloscratch/hf_cache"},
                         "HF_TOKEN": {"value": user_cfg["hf_token"]},
                         "EPFML_LDAP": {"value": user_cfg["user"]},
                     }
