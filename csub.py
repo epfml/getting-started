@@ -104,10 +104,10 @@ parser.add_argument(
     "--node_type",
     type=str,
     default="",
-    choices=["", "g9", "g10", "h100", "default"],
+    choices=["", "g9", "g10", "h100", "default", "a100-40g"],
     help="node type to run on (default is empty, which means any node). \
           IC cluster: g9 for V100, g10 for A100. \
-          RCP-Prod cluster: h100 for H100, use 'default' to get A100 on interactive jobs",
+          RCP-Prod cluster: use h100 for H100, use 'default' to get A100 with 80G memory on interactive jobs, use 'a100-40g' to get A100 with 40G memory on interactive jobs",
 )
 parser.add_argument(
     "--host_ipc",
@@ -273,12 +273,12 @@ spec:
 """
 
     #### some additional flags that can be added at the end of the config
-    if args.node_type in ["g10", "g9", "h100", "default"]:
+    if args.node_type in ["g10", "g9", "h100", "default", "a100-40g"]:
         cfg += f"""
   nodePools:
     value: {args.node_type} # g10 for A100, g9 for V100 (only on IC cluster)
 """
-    if args.node_type in ["g10", "h100", "default"] and not args.train:
+    if args.node_type in ["g10", "h100", "default", "a100-40g"] and not args.train:
         # for interactive jobs on A100s (g10 nodes), we need to set the jobs preemptible
         # see table "Types of Workloads" https://inside.epfl.ch/ic-it-docs/ic-cluster/caas/submit-jobs/
         cfg += f"""
