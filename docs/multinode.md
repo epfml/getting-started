@@ -13,10 +13,10 @@ As an example, the following command launches 3 pods, each with 4 GPUs. Note tha
 ```bash
 runai submit-dist pytorch \
     --name distributed-job-readme \
-    --workers=2 -g 4 -i ic-registry.epfl.ch/mlo/lauzhack:v1 \
+    --workers=2 -g 4 -i ic-registry.epfl.ch/mlo/mlo:v1 \
     --annotation k8s.v1.cni.cncf.io/networks=kube-system/roce \
     --extended-resource rdma/rdma=1 \
-    -- "sleep infinity" 
+    -- bash -c "sleep infinity" 
 ```
 Note that it is not possbile to control how these pods are scheduled so these two pods can be either on the same node or on different nodes. For best performance, local GPUs should be maximized, which would mean asking for pods of 8 GPUs each (taking a full node).
 
