@@ -28,7 +28,10 @@ RunAI handles scheduling the pods and also creates the necessary communication (
 * `MASTER_PORT`: Port on which master node is listening
 
 
-For running a training job, torchrun accepts the above variables as arguments and automatically schedules the job. For example the following command can be used to schedule a training job on the 3 pods we launched before. Note that the command needs to be run on each of the pods separately.
+For running a training job, torchrun accepts the above variables as arguments and automatically schedules the job. For example the following command can be used to schedule a training job on the 3 pods we launched before. 
+
+> [!NOTE]
+> The command needs to be run on each of the pods separately.
 
 ```bash
 torchrun \
