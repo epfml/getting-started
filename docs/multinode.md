@@ -6,7 +6,7 @@
 > [!CAUTION]  
 > This doc explains an advanced usage of RunAI. 
 
-Jobs can be submitted either through RunAI as documented in RunAI's website (https://docs.run.ai/v2.13/Researcher/cli-reference/runai-submit-dist-pytorch/).
+Jobs can be submitted either through RunAI as documented in RunAI's website (https://docs.run.ai/latest/Researcher/cli-reference/runai-submit-dist-pytorch/).
 
 As an example, the following command launches 3 pods, each with 4 GPUs. Note that the number of pods is one more than the number of workers as the master node is not counted as a worker.
 
@@ -65,7 +65,7 @@ However, the communication backend requires additional configuration to use RDMA
     grep 'RoCE v2' /sys/class/infiniband/mlx5_bond_0/ports/1/gid_attrs/types/* 2>/dev/null
     ```
 
-    2.3. The port that appears in both of the above commands is the one we want. For the pods I was running this was always port 9. The following one-liner performs all the above operations:
+    2.3. The port that appears in both of the above commands is the one we want. For the pods I was running this was always port 7 or 9. The following one-liner performs all the above operations:
 
     ```bash
     grep 'RoCE v2' $(grep '0000:0000:0000:0000:0000:ffff' /sys/class/infiniband/mlx5_bond_0/ports/1/gids/* | cut -d ':' -f 1 | sed 's/gids/gid_attrs\/types/') |  sed -e 's/.*\/\([0-9]*\):.*/\1/'
