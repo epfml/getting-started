@@ -1,9 +1,9 @@
 # FAQ about the EPFL clusters and the setup of this repo
-This is a list of questions that might pop up when you use the IC and RCP clusters.
+This is a list of questions that might pop up when you use the RCP cluster.
 
 If you encounter problems that are not covered in this list or in the [main readme](../README.md), either ...
 * Please reach out to the colleagues and other members of the group (e.g. via the #cluster or #it channel on Slack) -- someone might know the answer :)
-* If there are errors you think you should not be getting, open a ticket to `support-icit@epfl.ch` (for IC cluster) or `supportrcp@epfl.ch` (for RCP cluster)
+* If there are errors you think you should not be getting, open a ticket to `supportrcp@epfl.ch`
 * When appropriate and it's a common error, add the problem and solution to this list to keep it up to date!
 
 
@@ -48,7 +48,7 @@ At the same time, always make sure that you have requested the correct resources
 
 <details>
 <summary><i> Where can I see the usage of the cluster? </i> </summary>
-Check the dashboard for the IC cluster (https://ic-dashboard.epfl.ch/) or the RCP cluster (https://rcp-dashboard.epfl.ch/).
+Check the dashboard for the RCP cluster (https://rcp-dashboard.epfl.ch/).
 </details>
 
 ---

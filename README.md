@@ -243,6 +243,11 @@ We provide the script in this repo as a convenient way of creating jobs (see mor
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
   * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 12 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
 * For a training job, use the flag `--train`, and replace the command with your training command. Using a training job allows you to use more than 1 GPU (up to 8 on one node). Moreover, a training job makes sure that the pod is killed when your code/experiment is finished in order to save money.
+* When choosing types of GPUs on the RCP cluster you have handful of options. You should consider both cost and memory and compute requirements of your job while choosing among them. 
+  * High-end GPUs like H100 and H200 come with significantly higher costs, so they should be used with care. 
+  * A100 GPUs are good enough for most of use cases. If your job does not require large memory, A100 40GB or V100 may be more cost-effective and faster to schedule. If your code is not heavily compute-bound and works well on older hardware, using V100 is preferred. 
+  * For memory-intensive workloads, H200 with 140GB RAM is recommended. 
+  * Overall, if you plan to run a series of jobs, it's a good idea to inform your supervisor in advance.
 
 Of course, the script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. For whichever workflow you go for, keep these things in mind:
 > [!IMPORTANT]
