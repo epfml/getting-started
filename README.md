@@ -248,6 +248,7 @@ We provide the script in this repo as a convenient way of creating jobs (see mor
   * A100 GPUs are good enough for most of use cases. If your job does not require large memory, A100 40GB or V100 may be more cost-effective and faster to schedule. If your code is not heavily compute-bound and works well on older hardware, using V100 is preferred. 
   * For memory-intensive workloads, H200 with 140GB RAM is recommended. 
   * Overall, if you plan to run a series of jobs, it's a good idea to inform your supervisor in advance.
+* For specifying the type of GPU while submitting with `csub.py`, you should use the flag `--node_type`. If you are submitting directly through CLI, you should use the flag `--node-pools` instead. In both cases, you should choose from `[v100|h100|h200|default|a100-40g]`, where `default` corresponds to A100 GPUs. So if you want to use A100 as an example, you should add `--node-pools default` in CLI submission or `--node_type default` when submitting `csub.py`.
 
 Of course, the script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. For whichever workflow you go for, keep these things in mind:
 > [!IMPORTANT]
@@ -306,7 +307,7 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+python csub.py -n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
