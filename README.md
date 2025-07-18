@@ -1,7 +1,7 @@
- # MLO: Getting started with the EPFL Clusters
-This repository contains the basic steps to start running scripts and notebooks on the EPFL Clusters (both RCP and IC) -- so that you don't have to go through the countless documentations by yourself! We also provide scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and CLAIRE, and scripts created by Atli :)
+ # MLO: Getting started with the EPFL Cluster
+This repository contains the basic steps to start running scripts and notebooks on the EPFL Cluster (RCP) -- so that you don't have to go through the countless documentations by yourself! We also provide scripts that can make your life easier by automating a lot of things. It is based on a similar setup from our friends at TML and CLAIRE, and scripts created by Atli :)
 
-There are two clusters available to us: the IC cluster (department only) and the RCP cluster (EPFL-wide). The RCP cluster has A100 (80GB), H100 (80GB) and V100 GPUs, while the IC cluster is equipped with older V100 (32GB) and A100 (40GB) GPUs. You can switch between the two clusters and their respective GPUs. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
+The RCP cluster has A100 (80GB), H100 (80GB), H200 (140GB) and V100 GPUs that you can choose from. The system is built on top of [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (automating deployment of containers) and [run:ai](https://run.ai) (scheduler on top of Kubernetes).
 
 For starters, we recommend you to go through the [minimal basic setup](#minimal-basic-setup) first and then read the [important notes](#important-notes-and-workflow). 
 
@@ -43,8 +43,6 @@ The step-by-step instructions for first time users to quickly get a job running.
 
 > [!TIP] 
 > After completing the setup, the **TL;DR** of the interaction with the cluster (using the scripts in this repo) is:
-> * Choose a cluster and just run the command to set it up: `ic-cluster` or `rcp-cluster`
-> 
 > * Get a running job with one GPU that is reserved for you: `python csub.py -n sandbox`
 > 
 > * Connect to a terminal inside your job: `runai exec sandbox -it -- zsh`
@@ -91,7 +89,7 @@ sudo chown root: /usr/local/bin/kubectl
 curl -o  ~/.kube/config https://raw.githubusercontent.com/epfml/getting-started/main/kubeconfig.yaml
 ```
 
-3. Install the run:ai CLI for RCP (two RCP clusters) and IC:
+3. Install the run:ai CLI for RCP:
 ```bash
 # Sketch for macOS with Apple Silicon
 # Download the CLI from the link shown in the help section.
@@ -99,55 +97,31 @@ curl -o  ~/.kube/config https://raw.githubusercontent.com/epfml/getting-started/
 wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
 # Give it the right permissions and move it.
 chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-rcp
-sudo chown root: /usr/local/bin/runai-rcp
-
-# Repeat for IC Cluster
-# for Linux: replace `macos` with `linux`
-wget --content-disposition https://go.epfl.ch/iccluster-runai-macos
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai-ic
-sudo chown root: /usr/local/bin/runai-ic
+sudo mv ./runai /usr/local/bin/runai
+sudo chown root: /usr/local/bin/runai
 ```
 
 ## 3: Login
-1. Switch between contexts and login to both clusters.
+1. Login to RCP cluster and check that you can see your projects.
 ```bash
-# Switch to the IC cluster
-runai-ic config cluster ic-caas
+
 # Login to the cluster
-runai-ic login
+runai login
 # Check that things worked fine
-runai-ic list projects
+runai list projects
 # Put default project
-runai-ic config project mlo-$GASPAR_USERNAME
-# Repeat for the RCP cluster
-runai-rcp config cluster rcp-caas
-runai-rcp login
-runai-rcp list projects
-runai-rcp config project mlo-$GASPAR_USERNAME
+runai config project mlo-$GASPAR_USERNAME
 ```
 
-2. You probably notice that it's a bit cumbersome to have the different `runai` commands. That is why we have
-   litte helper functions (see [template/cluster_switch](template/cluster_switch.sh)) that you can use to switch between the clusters.
-   To have these functions available in every terminal session, we add them to your `.zshrc` or `.bashrc` file. 
-   On the newest versions of macOS (which this guide is written with), put in your username for `<your username>` below and run the following commands:
-```bash
-export GASPAR_USERNAME=<your username>
-# on linux, replace .zshrc with .bashrc
-echo "export GASPAR_USERNAME=$GASPAR_USERNAME" >> ~/.zshrc
-curl -s https://raw.githubusercontent.com/epfml/getting-started/main/template/cluster_switch.sh | tee -a ~/.zshrc
-source ~/.zshrc
-```
 
-3. Run a quick test to see that you can launch jobs:
+2. Run a quick test to see that you can launch jobs. You need to change $UID (user ID). You can find your personal UID under the administrative data in your profile on people.epfl.ch (e.g. https://people.epfl.ch/alexander.hagele). The group ID is `83070` for MLO group. If you are using this guide from another group, you should change the group ID as well. 
 ```bash
-# Let's use the normal RCP cluster
-rcp-cluster
 # Try to submit a job that mounts our shared storage and see its content.
 runai submit \
   --name setup-test-storage \
   --image ubuntu \
+  --run-as-uid $UID \
+  --run-as-gid 83070 \ 
   --pvc mlo-scratch:/mloscratch \
   -- ls -la /mloscratch/homes
 # Check the status of the job
@@ -227,8 +201,6 @@ For remote development (changing code, debugging, etc.), we recommend using VSCo
 > **Keep your files inside your home folder**: Importantly, when a job is restarted or killed, everything inside the container folders of `~/` are lost. This is why you need to work inside `/mloscratch/homes/<your username>`. For conda and other things (e.g. `~/.zshrc`), we have set up automatic symlinks to files that are persistent on scratch.
 >
 > To have a job that can run in the background, do `python csub.py -n sandbox --train --command "cd /mloscratch/homes/<your username>/<your code>; python main.py "`
->
->  There are differences between the clusters of IC and RCP, which require different tool versions (`runai-ic`, `runai-rcp`, ...). Since this is a bit of a hassle, we made it easy to switch between the clusters via the commands `ic-cluster` and `rcp-cluster`. To make sure you're aware of the cluster you're using, the `csub` script asks you to set the cluster to use before submitting a job: `python csub.py -n sandbox --cluster ic-caas` (choosing between `["ic-caas", "rcp-caas"]`). It only works when the cluster argument matches your currently chosen cluster. 
 
 You're good to go now! :) It's up to you to customize your environment and install the packages you need. Read up on the rest of this README to learn more about the cluster and the scripts.
 
@@ -240,12 +212,12 @@ You're good to go now! :) It's up to you to customize your environment and insta
 ## Using VSCODE
 To easily attach a VSCODE window to a pod we recommend the following steps: 
 1. Install the [Kubernetes](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extensions.
-2. From your VSCODE window, click on Kubernetes -> ic-cluster/rcp-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
+2. From your VSCODE window, click on Kubernetes -> rcp-cluster -> Workloads -> Pods, and you should be able to see all your running pods.
 3. Right-click on the pod you want to access and select `Attach Visual Studio Code`, this will start a vscode session attached to your pod.
 4. The symlinks ensure that settings and extensions are stored in `mloscratch/homes/<gaspar username>` and therefore shared across pods.
 5. Note that when opening the VS code window, it opens the home folder of the pod (not scratch!). You can navigate to your working directory (code) by navigating to `/mloscratch/homes/<your username>`.
 
-You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/how-to-vscode).
+You can also see a pictorial description [here](https://wiki.rcp.epfl.ch/en/home/CaaS/FAQ/how-to-vscode).
 
 ## Managing pods
 After starting pods with the script, you can manage your pods using run:ai and the following commands: 
@@ -255,8 +227,6 @@ runai delete job pod_name # kills the job and removes it from the list of jobs
 runai describe job pod_name # shows information on the status/execution of the job
 runai list jobs # list all jobs and their status 
 runai logs pod_name # shows the output/logs for the job
-ic-cluster # switch to IC cluster context
-rcp-cluster # switch to RCP cluster context
 ```
 Some commands that might come in handy (credits to Thijs):
 ```bash
@@ -273,6 +243,12 @@ We provide the script in this repo as a convenient way of creating jobs (see mor
 * The default job is just an interactive one (with `sleep`) that you can use for development. 
   * 'Interactive' jobs are a concept from run:ai. Every user can have 1 interactive GPU. They have higher priority than other jobs and can live up to 12 hours. You can use them for debugging. If you need more than 1 GPU, you need to submit a training job.
 * For a training job, use the flag `--train`, and replace the command with your training command. Using a training job allows you to use more than 1 GPU (up to 8 on one node). Moreover, a training job makes sure that the pod is killed when your code/experiment is finished in order to save money.
+* When choosing types of GPUs on the RCP cluster you have handful of options. You should consider both cost and memory and compute requirements of your job while choosing among them. 
+  * High-end GPUs like H100 and H200 come with significantly higher costs, so they should be used with care. 
+  * A100 GPUs are good enough for most of use cases. If your job does not require large memory, A100 40GB or V100 may be more cost-effective and faster to schedule. If your code is not heavily compute-bound and works well on older hardware, using V100 is preferred. 
+  * For memory-intensive workloads, H200 with 140GB RAM is recommended. 
+  * Overall, if you plan to run a series of jobs, it's a good idea to inform your supervisor in advance.
+* For specifying the type of GPU while submitting with `csub.py`, you should use the flag `--node_type`. If you are submitting directly through CLI, you should use the flag `--node-pools` instead. In both cases, you should choose from `[v100|h100|h200|default|a100-40g]`, where `default` corresponds to A100 GPUs. So if you want to use A100 as an example, you should add `--node-pools default` in CLI submission or `--node_type default` when submitting `csub.py`.
 
 Of course, the script is just one suggested workflow that tries to maximize productivity and minimize costs -- you're free to find your own workflow, of course. For whichever workflow you go for, keep these things in mind:
 > [!IMPORTANT]
@@ -331,7 +307,7 @@ The python script `csub.py` is a wrapper around the run:ai CLI that makes it eas
 General usage:
 
 ```bash
-python csub.py --n <job_name> -g <number of GPUs> -t <time> --cluster rcp-caas -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
+python csub.py -n <job_name> -g <number of GPUs> -t <time> -i ic-registry.epfl.ch/mlo/mlo:v1 --command <cmd> [--train]
 ```
 Check the arguments for the script to see what they do.
 
@@ -399,13 +375,6 @@ A nice [documentation to get started with distributed jobs is available here](do
 
 # Quick links
 
-IC Cluster
- * Docs: https://icitdocs.epfl.ch/display/clusterdocs/IC+Cluster+Documentation
- * Dashboard: https://epfl.run.ai
- * Docker registry: https://ic-registry.epfl.ch/harbor/projects
- * Getting started guide: https://icitdocs.epfl.ch/display/clusterdocs/Getting+Started+with+RunAI
-
-RCP Cluster
  * RCP main page: https://www.epfl.ch/research/facilities/rcp/
  * Docs: https://wiki.rcp.epfl.ch
  * Dashboard: https://rcpepfl.run.ai
