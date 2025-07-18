@@ -17,13 +17,13 @@ parser.add_argument(
     required=False,
     help="Job name (has to be unique in the namespace)",
 )
-parser.add_argument(
-    "-cl",
-    "--cluster",
-    type=str,
-    default="rcp-caas",
-    choices=["ic-caas", "rcp-caas"],
-)
+# parser.add_argument(
+#     "-cl",
+#     "--cluster",
+#     type=str,
+#     default="rcp-caas",
+#     choices=["ic-caas", "rcp-caas"],
+# )
 parser.add_argument(
     "-c",
     "--command",
@@ -104,10 +104,11 @@ parser.add_argument(
     "--node_type",
     type=str,
     default="",
-    choices=["", "g9", "g10", "h100", "default", "a100-40g"],
+    choices=["", "v100", "h100", "h200", "default", "a100-40g"],
     help="node type to run on (default is empty, which means any node). \
-          IC cluster: g9 for V100, g10 for A100. \
-          RCP-Prod cluster: use h100 for H100, use 'default' to get A100 with 80G memory on interactive jobs, use 'a100-40g' to get A100 with 40G memory on interactive jobs",
+          RCP cluster: use h100 for H100, use 'default' to get A100 with 80G memory on interactive jobs, \
+          use 'a100-40g' to get A100 with 40G memory on interactive jobs, use h200 to get H200 with 140GB memory, \
+          use v100 for V100 with 32GB memory",
 )
 parser.add_argument(
     "--host_ipc",
@@ -140,22 +141,18 @@ if __name__ == "__main__":
     scratch_name = f"runai-mlo-{user_cfg['user']}-scratch"
 
     # get current cluster and make sure argument matches
-    current_cluster = subprocess.run(
-        ["kubectl", "config", "current-context"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    ).stdout.strip()
+    # current_cluster = subprocess.run(
+    #     ["kubectl", "config", "current-context"],
+    #     stdout=subprocess.PIPE,
+    #     stderr=subprocess.PIPE,
+    #     text=True,
+    # ).stdout.strip()
 
-    if current_cluster == "rcp-caas":
-        # the latest version can be found on https://wiki.rcp.epfl.ch/home/CaaS/FAQ/how-to-prepare-environment
-        runai_cli_version = "2.18.94"
-        scratch_name = "mlo-scratch"
-    elif current_cluster == "ic-caas":
-        runai_cli_version = "2.16.52"
-    assert (
-        current_cluster == args.cluster
-    ), f"Current cluster is {current_cluster}, but you specified {args.cluster}. Use --cluster {current_cluster}"
+
+    # the latest version can be found on https://wiki.rcp.epfl.ch/home/CaaS/FAQ/how-to-prepare-environment
+    runai_cli_version = "2.18.94"
+    scratch_name = "mlo-scratch"
+
 
     if args.name is None:
         args.name = f"{user_cfg['user']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -273,14 +270,14 @@ spec:
 """
 
     #### some additional flags that can be added at the end of the config
-    if args.node_type in ["g10", "g9", "h100", "default", "a100-40g"]:
+    if args.node_type in ["v100", "h100", "h200", "default", "a100-40g"]:
         cfg += f"""
   nodePools:
-    value: {args.node_type} # g10 for A100, g9 for V100 (only on IC cluster)
+    value: {args.node_type}
 """
-    if args.node_type in ["g10", "h100", "default", "a100-40g"] and not args.train:
-        # for interactive jobs on A100s (g10 nodes), we need to set the jobs preemptible
-        # see table "Types of Workloads" https://inside.epfl.ch/ic-it-docs/ic-cluster/caas/submit-jobs/
+    if args.node_type in ["h100", "default", "a100-40g"] and not args.train:
+        # for interactive jobs on A100s, we need to set the jobs preemptible
+        # see table "Types of Workloads" https://wiki.rcp.epfl.ch/en/home/CaaS/FAQ/how-to-use-node-pools
         cfg += f"""
   preemptible:
     value: true
