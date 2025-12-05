@@ -21,7 +21,6 @@ The RCP cluster provides:
 > Using the cluster creates costs. Please be mindful of the resources you use. **Do not forget to stop your jobs when not used!**
 
 Content overview:
-- [Getting Help](#getting-help)
 - [Quick Start](#quick-start)
 - [Setup Guide](#setup-guide)
   - [1. Pre-setup (Access \& Repository)](#1-pre-setup-access--repository)
@@ -178,7 +177,7 @@ Open `.env` in an editor and configure:
 | `LDAP_USERNAME` | Your EPFL/Gaspar username | `jdoe` |
 | `LDAP_UID` | Your numeric LDAP user ID | `123456` |
 | `LDAP_GROUPNAME` | For MLO | `MLO-unit` |
-| `LDAP_GID` | For MLO | `83070` |
+| `LDAP_GID` | For MLO: `83070` | `83070` |
 | `RUNAI_PROJECT` | Your project | `mlo-<username>` |
 | `K8S_NAMESPACE` | Your namespace | `runai-mlo-<username>` |
 | `RUNAI_IMAGE` | Docker image | `ic-registry.epfl.ch/mlo/mlo-base:uv1` |
