@@ -1,340 +1,220 @@
 #!/usr/bin/python3
 
+"""
+Submission helper for the EPFL RCP cluster.
+
+This version drops the intermediate Kubernetes YAML and instead shells out to
+the run:ai CLI directly. User and secret specific configuration is stored in a
+local .env file (see templates/user.env.example) that is mirrored into a
+Kubernetes secret before each submission.
+"""
+
+from __future__ import annotations
+
 import argparse
-from datetime import datetime, timedelta
-from pprint import pprint
-import re
 import subprocess
-import tempfile
-import yaml
-import os
+import sys
+from pathlib import Path
 
-parser = argparse.ArgumentParser(description="Cluster Submit Utility")
-parser.add_argument(
-    "-n",
-    "--name",
-    type=str,
-    required=False,
-    help="Job name (has to be unique in the namespace)",
+from datetime import datetime
+from typing import Dict, List, Tuple
+
+from utils import (
+    DEFAULT_ENV_FILE,
+    ensure_secret,
+    maybe_populate_github_ssh,
+    parse_env_file,
+    rendered_env_file,
+    shlex_join,
+    parse_duration,
+    add_env_flags,
+    add_secret_env_flags,
 )
 
-parser.add_argument(
-    "-c",
-    "--command",
-    type=str,
-    required=False,
-    help="Command to run on the instance (default sleep for duration)",
-)
-parser.add_argument(
-    "-t",
-    "--time",
-    type=str,
-    required=False,
-    help="The maximum duration allowed for this job (default 24h)",
-)
-parser.add_argument(
-    "-g",
-    "--gpus",
-    type=int,
-    default=1,
-    required=False,
-    help="The number of GPUs requested (default 1)",
-)
-parser.add_argument(
-    "--cpus",
-    type=int,
-    default=1,
-    required=False,
-    help="The number of CPUs requested (default 1)",
-)
-parser.add_argument(
-    "--memory",
-    type=str,
-    default="4G",
-    required=False,
-    help="The minimum amount of CPU memory (default 4G). must match regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'",
-)
-# TODO: add gpu memory or GPU selection argument
-parser.add_argument(
-    "-i",
-    "--image",
-    type=str,
-    required=False,
-    default="ic-registry.epfl.ch/mlo/mlo:v1",
-    help="The URL of the docker image that will be used for the job",
-)
-parser.add_argument(
-    "-p",
-    "--port",
-    type=int,
-    required=False,
-    help="A cluster port for connect to this node",
-)
-parser.add_argument(
-    "-u",
-    "--user",
-    type=str,
-    default="user.yaml",
-    help="Path to a yaml file that defines the user",
-)
-parser.add_argument(
-    "--train",
-    action="store_true",
-    help="train job (default is interactive, which has higher priority)",
-)
-parser.add_argument(
-    "-d",
-    "--dry",
-    action="store_true",
-    help="Print the generated yaml file instead of submitting it",
-)
-parser.add_argument(
-    "--backofflimit",
-    default=0,
-    type=int,
-    help="specifies the number of retries before marking a workload as failed (default 0). only exists for train jobs",
-)
-parser.add_argument(
-    "--node_type",
-    type=str,
-    default="",
-    choices=["", "v100", "h100", "h200", "default", "a100-40g"],
-    help="node type to run on (default is empty, which means any node). \
-          RCP cluster: use h100 for H100, use 'default' to get A100 with 80G memory on interactive jobs, \
-          use 'a100-40g' to get A100 with 40G memory on interactive jobs, use h200 to get H200 with 140GB memory, \
-          use v100 for V100 with 32GB memory",
-)
-parser.add_argument(
-    "--host_ipc",
-    action="store_true",
-    help="created workload will use the host's ipc namespace",
-)
-parser.add_argument(
-    "--no_symlinks",
-    action="store_true",
-    help="do not create symlinks to the user's home directory",
-)
-parser.add_argument(
-    "--large_shm",
-    action="store_true",
-    help="use large shared memory /dev/shm for the job",
-)
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Wrapper around runai submit that keeps configuration in a .env file."
+    )
+    parser.add_argument("-n", "--name", type=str, help="Job name (auto generated if omitted)")
+    parser.add_argument("--uid", type=int, help="Run the container as this UID instead of LDAP_UID from the env file")
+    parser.add_argument("--gid", type=int, help="Run the container as this GID instead of LDAP_GID from the env file")
+    parser.add_argument("-c", "--command", type=str, help="Command to run inside the container (default: sleep for the requested duration)")
+    parser.add_argument("-t", "--time", type=str, help="Maximum runtime formatted as 12h, 2d6h30m, ... (default 12h for the keep-alive sleep)")
+    parser.add_argument("-g", "--gpus", type=int, default=0, help="Number of GPUs")
+    parser.add_argument("--cpus", type=int, help="Number of CPUs (omit to use platform default)")
+    parser.add_argument("--memory", type=str, help="Requested CPU memory (omit to use platform default)")
+    parser.add_argument("-i", "--image", type=str, help="Override RUNAI_IMAGE from the env file")
+    parser.add_argument("-p", "--port", type=int, help="Expose a container port")
+    parser.add_argument("--train", action="store_true", help="Submit as a training workload")
+    parser.add_argument("--dry", action="store_true", help="Print the generated runai command")
+    parser.add_argument("--env-file", type=str, default=DEFAULT_ENV_FILE, help="Path to the .env file (default: .env in the repo root)")
+    parser.add_argument("--sync-secret-only", action="store_true", help="Create/refresh the Kubernetes secret and exit without submitting a job")
+    parser.add_argument("--skip-secret-sync", action="store_true", help="Do not (re)create the Kubernetes secret before submission")
+    parser.add_argument("--secret-name", type=str, help="Override RUNAI_SECRET_NAME from the env file")
+    parser.add_argument("--pvc", type=str, help="Override SCRATCH_PVC from the env file")
+    parser.add_argument("--backofflimit", type=int, default=0, help="Retries before marking a training job as failed")
+    parser.add_argument("--node-type", type=str, choices=["", "v100", "h100", "h200", "default", "a100-40g"], default="", help="GPU node pool to target")
+    parser.add_argument("--host-ipc", action="store_true", help="Share the host IPC namespace")
+    parser.add_argument("--large-shm", action="store_true", help="Request a larger /dev/shm")
+    return parser
+
+
+def build_runai_command(
+    args: argparse.Namespace, env: Dict[str, str]
+) -> Tuple[List[str], str]:
+    job_name = (
+        args.name
+        or f"{env['LDAP_USERNAME']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    )
+    image = args.image or env.get("RUNAI_IMAGE")
+    if not image:
+        sys.exit("RUNAI_IMAGE must be defined either in the env file or via --image.")
+
+    secret_name = args.secret_name or env.get("RUNAI_SECRET_NAME")
+    if not secret_name:
+        sys.exit(
+            "RUNAI_SECRET_NAME must be defined in the env file or via --secret-name."
+        )
+
+    namespace = env.get("K8S_NAMESPACE") or env.get("RUNAI_PROJECT")
+    if not namespace:
+        sys.exit("Define K8S_NAMESPACE or RUNAI_PROJECT in the env file.")
+
+    pvc = args.pvc or env.get("SCRATCH_PVC")
+    if not pvc:
+        sys.exit("Define SCRATCH_PVC in the env file or pass --pvc.")
+
+    scratch_mount_path = env.get("SCRATCH_MOUNT_PATH", "/mloscratch")
+    scratch_root = env.get("SCRATCH_HOME_ROOT") or f"{scratch_mount_path}/homes"
+    working_dir = env.get("WORKING_DIR") or f"{scratch_root}/{env['LDAP_USERNAME']}"
+    hf_home = env.get("HF_HOME") or f"{scratch_mount_path}/hf_cache"
+    run_uid = str(args.uid) if args.uid is not None else env["LDAP_UID"]
+    run_gid = str(args.gid) if args.gid is not None else env["LDAP_GID"]
+
+    literal_env = {
+        "HOME": f"/home/{env['LDAP_USERNAME']}",
+        "NB_USER": env["LDAP_USERNAME"],
+        "NB_UID": run_uid,
+        "NB_GROUP": env["LDAP_GROUPNAME"],
+        "NB_GID": run_gid,
+        "WORKING_DIR": working_dir,
+        "SCRATCH_HOME": working_dir,
+        "SCRATCH_HOME_ROOT": scratch_root,
+        "EPFML_LDAP": env["LDAP_USERNAME"],
+        "HF_HOME": hf_home,
+        "UV_PYTHON_VERSION": env.get("UV_PYTHON_VERSION", "3.11"),
+        "TZ": env.get("TZ", "Europe/Zurich"),
+    }
+
+    duration = parse_duration(args.time)
+    user_command = args.command or f"sleep {duration}"
+    shell_command = f"source ~/.zshrc && {user_command}"
+
+    cmd: List[str] = [
+        "runai",
+        "submit",
+        "--name",
+        job_name,
+        "--project",
+        env.get("RUNAI_PROJECT", namespace),
+        "--image",
+        image,
+        "--gpu",
+        str(args.gpus),
+        "--run-as-uid",
+        run_uid,
+        "--run-as-gid",
+        run_gid,
+        "--pvc",
+        f"{pvc}:{scratch_mount_path}",
+        "--image-pull-policy",
+        "Always",
+        "--allow-privilege-escalation",
+        "true",
+    ]
+
+    if args.cpus is not None:
+        cmd.extend(["--cpu", str(args.cpus)])
+
+    if args.memory:
+        cmd.extend(["--memory", args.memory])
+
+    if not args.train:
+        cmd.append("--interactive")
+    else:
+        cmd.extend(["--backoff-limit", str(args.backofflimit)])
+
+    if args.port:
+        cmd.extend(["--port", str(args.port)])
+
+    if args.host_ipc:
+        cmd.append("--host-ipc")
+    if args.large_shm:
+        cmd.append("--large-shm")
+
+    if args.node_type:
+        cmd.extend(["--node-pools", args.node_type])
+        if args.node_type in {"h200", "h100"} and not args.train:
+            cmd.append("--preemptible")
+
+    add_env_flags(cmd, literal_env)
+    add_secret_env_flags(
+        cmd,
+        env,
+        secret_name,
+        env.get("EXTRA_SECRET_KEYS", "").split(","),
+    )
+
+    cmd.extend(
+        [
+            "--",
+            "/bin/zsh",
+            "-c",
+            shell_command,
+        ]
+    )
+    return cmd, job_name
+
+
+def main() -> None:
+    parser = build_parser()
+    args = parser.parse_args()
+    env_path = Path(args.env_file).expanduser()
+    env = parse_env_file(env_path)
+    maybe_populate_github_ssh(env)
+    secret_name = args.secret_name or env.get("RUNAI_SECRET_NAME")
+    namespace = env.get("K8S_NAMESPACE") or env.get("RUNAI_PROJECT")
+
+    if not secret_name:
+        sys.exit("RUNAI_SECRET_NAME (or --secret-name) is required.")
+    if not namespace:
+        sys.exit("K8S_NAMESPACE or RUNAI_PROJECT must be defined in the env file.")
+
+    if args.sync_secret_only or not args.skip_secret_sync:
+        with rendered_env_file(env) as rendered_path:
+            ensure_secret(rendered_path, namespace, secret_name)
+        if args.sync_secret_only:
+            print(f"Secret {secret_name} was updated in namespace {namespace}.")
+            return
+
+    cmd, job_name = build_runai_command(args, env)
+
+    if args.dry:
+        print(shlex_join(cmd))
+        return
+
+    print(f"→ {shlex_join(cmd)}")
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as exc:
+        sys.exit(exc.returncode)
+
+    print("\nJob submitted. Handy commands:")
+    print(f"runai describe job {job_name}")
+    print(f"runai logs {job_name}")
+    print(f"runai exec {job_name} -it -- zsh")
+    print(f"runai delete job {job_name}")
+
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-
-    if not os.path.exists(args.user):
-        print(
-            f"User file {args.user} does not exist, use the template in `template/user.yaml` to create your user file."
-        )
-        exit(1)
-
-    with open(args.user, "r") as file:
-        user_cfg = yaml.safe_load(file)
-
-    scratch_name = f"runai-mlo-{user_cfg['user']}-scratch"
-
-    # get current cluster and make sure argument matches
-    # current_cluster = subprocess.run(
-    #     ["kubectl", "config", "current-context"],
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.PIPE,
-    #     text=True,
-    # ).stdout.strip()
-
-
-    # the latest version can be found on https://wiki.rcp.epfl.ch/home/CaaS/FAQ/how-to-prepare-environment
-    runai_cli_version = "2.18.94"
-    scratch_name = "mlo-scratch"
-
-
-    if args.name is None:
-        args.name = f"{user_cfg['user']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-
-    if args.time is None:
-        args.time = 7 * 24 * 60 * 60
-    else:
-        pattern = r"((?P<days>\d+)d)?((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s?)?"
-        match = re.match(pattern, args.time)
-        parts = {k: int(v) for k, v in match.groupdict().items() if v}
-        args.time = int(timedelta(**parts).total_seconds())
-
-    if args.command is None:
-        args.command = f"sleep {args.time}"
-
-    if args.train:
-        workload_kind = "TrainingWorkload"
-    else:
-        workload_kind = "InteractiveWorkload"
-
-    working_dir = user_cfg["working_dir"]
-    if not args.no_symlinks:
-        symlink_targets, symlink_destinations = zip(*user_cfg["symlinks"].items())
-        symlink_targets = ":".join(
-            [os.path.join(working_dir, target) for target in symlink_targets]
-        )
-        symlink_paths = ":".join(
-            [
-                os.path.join(f"/home/{user_cfg['user']}", dest[1])
-                for dest in symlink_destinations
-            ]
-        )
-        symlink_types = ":".join([dest[0] for dest in symlink_destinations])
-    else:
-        symlink_targets = ""
-        symlink_paths = ""
-        symlink_types = ""
-
-    # this is the yaml file that will be submitted to the cluster
-    cfg = f"""
-apiVersion: run.ai/v2alpha1
-kind: {workload_kind}
-metadata:
-  annotations:
-    runai-cli-version: {runai_cli_version}
-  labels:
-    PreviousJob: "true"
-  name: {args.name}
-  namespace: runai-mlo-{user_cfg['user']}
-spec:
-  name:
-    value: {args.name}
-  arguments: 
-    value: "/bin/zsh -c 'source ~/.zshrc && {args.command}'" # zshrc is just loaded to have some env variables ready
-  environment:
-    items:
-      HOME:
-        value: "/home/{user_cfg['user']}"
-      NB_USER:
-        value: {user_cfg['user']}
-      NB_UID:
-        value: "{user_cfg['uid']}"
-      NB_GROUP:
-        value: {user_cfg['group']}
-      NB_GID:
-        value: "{user_cfg['gid']}"
-      WORKING_DIR:
-        value: "{working_dir}"
-      SYMLINK_TARGETS:
-        value: "{symlink_targets}"
-      SYMLINK_PATHS:
-        value: "{symlink_paths}"
-      SYMLINK_TYPES:
-        value: "{symlink_types}"
-      WANDB_API_KEY:
-        value: {user_cfg['wandb_api_key']}
-      HF_HOME:
-        value: /mloscratch/hf_cache
-      HF_TOKEN:
-        value: {user_cfg['hf_token']}
-      EPFML_LDAP:
-        value: {user_cfg['user']}
-  gpu:
-    value: "{args.gpus}"
-  cpu:
-    value: "{args.cpus}"
-  memory:
-    value: "{args.memory}"
-  image:
-    value: {args.image}
-  imagePullPolicy:
-    value: Always
-  pvcs:
-    items:
-      pvc--0:
-        value:
-          claimName: {scratch_name}
-          existingPvc: true
-          path: /mloscratch
-          readOnly: false
-  ## these two lines are necessary on RCP, not on the new IC
-  runAsGid:
-    value: {user_cfg['gid']}
-  runAsUid:
-    value: {user_cfg['uid']}
-  ##
-  runAsUser: 
-    value: true    
-  serviceType:
-    value: ClusterIP
-  username:
-    value: {user_cfg['user']}
-  allowPrivilegeEscalation:  # allow sudo
-    value: true
-"""
-
-    #### some additional flags that can be added at the end of the config
-    if args.node_type in ["v100", "h100", "h200", "default", "a100-40g"]:
-        cfg += f"""
-  nodePools:
-    value: {args.node_type}
-"""
-    if args.node_type in ["h100", "default", "a100-40g"] and not args.train:
-        # for interactive jobs on A100s, we need to set the jobs preemptible
-        # see table "Types of Workloads" https://wiki.rcp.epfl.ch/en/home/CaaS/FAQ/how-to-use-node-pools
-        cfg += f"""
-  preemptible:
-    value: true
-"""
-    if args.host_ipc:
-        cfg += f"""
-  hostIpc:
-    value: true
-"""
-
-    if args.train:
-        cfg += f"""
-  backoffLimit: 
-    value: {args.backofflimit}
-"""
-    if args.large_shm:
-        cfg += f"""
-  largeShm:
-    value: true
-"""
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
-        f.write(cfg)
-        f.flush()
-        if args.dry:
-            print(cfg)
-        else:
-            # Run the subprocess and capture stdout and stderr
-            result = subprocess.run(
-                ["kubectl", "apply", "-f", f.name],
-                # check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-
-            # Check if there was an error
-            if result.returncode != 0:
-                print("Error encountered:")
-                # Prettify and print the stderr
-                pprint(result.stderr)
-                exit(1)
-            else:
-                print("Output:")
-                # Prettify and print the stdout
-                print(result.stdout)
-
-                print("If the above says 'created', the job has been submitted.")
-
-                print(
-                    f"If the above says 'job unchanged', the job with name {args.name} "
-                    f"already exists (and you might need to delete it)."
-                )
-
-                print("\nThe following commands may come in handy:")
-                print(
-                    f"runai exec {args.name} -it zsh # opens an interactive shell on the pod"
-                )
-                print(
-                    f"runai delete job {args.name} # kills the job and removes it from the list of jobs"
-                )
-                print(
-                    f"runai describe job {args.name} # shows information on the status/execution of the job"
-                )
-                print("runai list jobs # list all jobs and their status")
-                print(f"runai logs {args.name} # shows the output/logs for the job")
+    main()
