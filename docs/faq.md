@@ -2,7 +2,7 @@
 This is a list of questions that might pop up when you use the RCP cluster.
 
 If you encounter problems that are not covered in this list or in the high-level [main readme](../README.md) and the deeper [architecture explainer](README.md), either ...
-* Please reach out to the colleagues and other members of the group (e.g. via the #cluster or #it channel on Slack) -- someone might know the answer :)
+* Please reach out to the colleagues and other members of the group (e.g. via the #-cluster or #-it channel on Slack) -- someone might know the answer :)
 * If there are errors you think you should not be getting, open a ticket to `supportrcp@epfl.ch`
 * When appropriate and it's a common error, add the problem and solution to this list to keep it up to date!
 
@@ -74,7 +74,7 @@ If you want to understand what it generates under the hood, `csub.py` composes a
 <summary><i> I get some permission error such as PermissionError: [Errno 13] Permission denied: '/mloscratch/hf_cache/...`. </i> </summary>
 This is probably related to the user and group permissions. Two things: for containers, make sure your user id is yours and the group id is 83070 (which stands for the runai-mlo group).
 Also, please add the following line to your .bashrc or .zshrc: umask 007 (e.g. via echo "umask 007" >> ~/.zshrc. Make sure that this is persistent or always done for all containers you use).
-If the problem persists, please contact us in the #it or #cluster channel. 
+If the problem persists, please contact us in the #-it or #-cluster channel. 
 
 As an explanation, we set up the huggingface cache (via the environment variable HF_HOME=/mloscratch/hf_cache) to be shared between users so that large datasets, checkpoints, ... are not downloaded repeatedly. You can also deactivate the huggingface cache, but it should work; so let us know if there's a problem.
 </details>

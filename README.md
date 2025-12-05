@@ -5,7 +5,7 @@ The RCP cluster has A100 (40GB/80GB), H100 (80GB), H200 (140GB) and V100 GPUs th
 
 For starters, we recommend going through the [minimal basic setup](#minimal-basic-setup) first and then reading the [important notes](#important-notes-and-workflow).
 
-If you have questions about the cluster or this setup that are not answered here, check the [frequently asked questions page](docs/faq.md) or reach out to your colleagues (e.g. via the `#cluster` or `#it` channels on Slack). There are more resources under the [quick links](#quick-links) below.
+If you have questions about the cluster or this setup that are not answered here, check the [frequently asked questions page](docs/faq.md) or reach out to your colleagues (e.g. via the `#-cluster` or `#-it` channels on Slack). There are more resources under the [quick links](#quick-links) below.
 
 > [!TIP]
 > If you have little prior experience with ML workflows, the setup below may seem daunting at first. You can copy‑paste the commands in order; the scripts are designed to hide most of the complexity. The only requirement is that you have a basic understanding of how to use a terminal and git.
