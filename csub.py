@@ -21,7 +21,6 @@ from typing import Dict, List, Tuple
 
 from utils import (
     DEFAULT_ENV_FILE,
-    build_runai_command,
     ensure_secret,
     maybe_populate_github_ssh,
     parse_env_file,

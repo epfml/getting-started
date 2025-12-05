@@ -63,10 +63,8 @@ def maybe_populate_github_ssh(env: Dict[str, str]) -> None:
     pub_path = _expand_path(
         env.get("GITHUB_SSH_PUBLIC_KEY_PATH"), Path(f"{key_path}.pub")
     )
-    print(f"[csub] key_path: {key_path}")
 
     if not env.get("SSH_PRIVATE_KEY_B64") and key_path.exists():
-        print(f"[csub] Loading SSH_PRIVATE_KEY_B64 from {key_path}", file=sys.stderr)
         encoded = base64.b64encode(key_path.read_bytes()).decode("ascii")
         env["SSH_PRIVATE_KEY_B64"] = encoded
         print(f"[csub] Loaded SSH_PRIVATE_KEY_B64 from {key_path}", file=sys.stderr)
