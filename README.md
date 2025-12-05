@@ -176,7 +176,7 @@ Open `.env` in an editor and configure:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `LDAP_USERNAME` | Your EPFL/Gaspar username | `jdoe` |
-| `LDAP_UID` | Your numeric LDAP user ID | `177449` |
+| `LDAP_UID` | Your numeric LDAP user ID | `123456` |
 | `LDAP_GROUPNAME` | For MLO | `MLO-unit` |
 | `LDAP_GID` | For MLO | `83070` |
 | `RUNAI_PROJECT` | Your project | `mlo-<username>` |
@@ -197,7 +197,7 @@ ssh <your_gaspar_username>@haas001.rcp.epfl.ch
 id
 ```
 
-Copy the number after `uid=` (e.g., `uid=177449`) into `LDAP_UID` in your `.env` file.
+Copy the number after `uid=` (e.g., `uid=123456`) into `LDAP_UID` in your `.env` file.
 
 #### Optional: Add secrets and tokens
 
