@@ -91,6 +91,8 @@ def build_runai_command(
     run_uid = str(args.uid) if args.uid is not None else env["LDAP_UID"]
     run_gid = str(args.gid) if args.gid is not None else env["LDAP_GID"]
 
+    scratch_home = working_dir
+
     literal_env = {
         "HOME": f"/home/{env['LDAP_USERNAME']}",
         "NB_USER": env["LDAP_USERNAME"],
@@ -98,12 +100,16 @@ def build_runai_command(
         "NB_GROUP": env["LDAP_GROUPNAME"],
         "NB_GID": run_gid,
         "WORKING_DIR": working_dir,
-        "SCRATCH_HOME": working_dir,
+        "SCRATCH_HOME": scratch_home,
         "SCRATCH_HOME_ROOT": scratch_root,
         "EPFML_LDAP": env["LDAP_USERNAME"],
         "HF_HOME": hf_home,
         "UV_PYTHON_VERSION": env.get("UV_PYTHON_VERSION", "3.11"),
         "TZ": env.get("TZ", "Europe/Zurich"),
+        # Keep runtime shell and tool caches available when using `runai exec`
+        "GIT_CONFIG_GLOBAL": f"{scratch_home}/.gitconfig",
+        "UV_CACHE_DIR": f"{scratch_home}/.cache/uv",
+        "UV_PYTHON_INSTALL_DIR": f"{scratch_home}/.uv",
     }
 
     duration = parse_duration(args.time)
