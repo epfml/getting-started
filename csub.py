@@ -36,11 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
         description="Wrapper around runai submit that keeps configuration in a .env file."
     )
     parser.add_argument("-n", "--name", type=str, help="Job name (auto generated if omitted)")
+    parser.add_argument("--uid", type=int, help="Run the container as this UID instead of LDAP_UID from the env file")
+    parser.add_argument("--gid", type=int, help="Run the container as this GID instead of LDAP_GID from the env file")
     parser.add_argument("-c", "--command", type=str, help="Command to run inside the container (default: sleep for the requested duration)")
     parser.add_argument("-t", "--time", type=str, help="Maximum runtime formatted as 12h, 2d6h30m, ... (default 12h for the keep-alive sleep)")
     parser.add_argument("-g", "--gpus", type=int, default=0, help="Number of GPUs")
-    parser.add_argument("--cpus", type=int, default=8, help="Number of CPUs")
-    parser.add_argument("--memory", type=str, default="32G", help="Requested CPU memory")
+    parser.add_argument("--cpus", type=int, help="Number of CPUs (omit to use platform default)")
+    parser.add_argument("--memory", type=str, help="Requested CPU memory (omit to use platform default)")
     parser.add_argument("-i", "--image", type=str, help="Override RUNAI_IMAGE from the env file")
     parser.add_argument("-p", "--port", type=int, help="Expose a container port")
     parser.add_argument("--train", action="store_true", help="Submit as a training workload")
@@ -49,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sync-secret-only", action="store_true", help="Create/refresh the Kubernetes secret and exit without submitting a job")
     parser.add_argument("--skip-secret-sync", action="store_true", help="Do not (re)create the Kubernetes secret before submission")
     parser.add_argument("--secret-name", type=str, help="Override RUNAI_SECRET_NAME from the env file")
-    parser.add_argument("--pvc", type=str, help="Override SCRATCH_PVC from the env file (default: mlo-scratch)")
+    parser.add_argument("--pvc", type=str, help="Override SCRATCH_PVC from the env file")
     parser.add_argument("--backofflimit", type=int, default=0, help="Retries before marking a training job as failed")
     parser.add_argument("--node-type", type=str, choices=["", "v100", "h100", "h200", "default", "a100-40g"], default="", help="GPU node pool to target")
     parser.add_argument("--host-ipc", action="store_true", help="Share the host IPC namespace")
@@ -78,20 +80,28 @@ def build_runai_command(
     if not namespace:
         sys.exit("Define K8S_NAMESPACE or RUNAI_PROJECT in the env file.")
 
-    pvc = args.pvc or env.get("SCRATCH_PVC", "mlo-scratch")
-    working_dir = env.get("WORKING_DIR") or f"/mloscratch/homes/{env['LDAP_USERNAME']}"
-    scratch_root = env.get("SCRATCH_HOME_ROOT", "/mloscratch/homes")
+    pvc = args.pvc or env.get("SCRATCH_PVC")
+    if not pvc:
+        sys.exit("Define SCRATCH_PVC in the env file or pass --pvc.")
+
+    scratch_mount_path = env.get("SCRATCH_MOUNT_PATH", "/mloscratch")
+    scratch_root = env.get("SCRATCH_HOME_ROOT") or f"{scratch_mount_path}/homes"
+    working_dir = env.get("WORKING_DIR") or f"{scratch_root}/{env['LDAP_USERNAME']}"
+    hf_home = env.get("HF_HOME") or f"{scratch_mount_path}/hf_cache"
+    run_uid = str(args.uid) if args.uid is not None else env["LDAP_UID"]
+    run_gid = str(args.gid) if args.gid is not None else env["LDAP_GID"]
+
     literal_env = {
         "HOME": f"/home/{env['LDAP_USERNAME']}",
         "NB_USER": env["LDAP_USERNAME"],
-        "NB_UID": env["LDAP_UID"],
+        "NB_UID": run_uid,
         "NB_GROUP": env["LDAP_GROUPNAME"],
-        "NB_GID": env["LDAP_GID"],
+        "NB_GID": run_gid,
         "WORKING_DIR": working_dir,
         "SCRATCH_HOME": working_dir,
         "SCRATCH_HOME_ROOT": scratch_root,
         "EPFML_LDAP": env["LDAP_USERNAME"],
-        "HF_HOME": "/mloscratch/hf_cache",
+        "HF_HOME": hf_home,
         "UV_PYTHON_VERSION": env.get("UV_PYTHON_VERSION", "3.11"),
         "TZ": env.get("TZ", "Europe/Zurich"),
     }
@@ -111,21 +121,23 @@ def build_runai_command(
         image,
         "--gpu",
         str(args.gpus),
-        "--cpu",
-        str(args.cpus),
-        "--memory",
-        args.memory,
         "--run-as-uid",
-        env["LDAP_UID"],
+        run_uid,
         "--run-as-gid",
-        env["LDAP_GID"],
+        run_gid,
         "--pvc",
-        f"{pvc}:/mloscratch",
+        f"{pvc}:{scratch_mount_path}",
         "--image-pull-policy",
         "Always",
         "--allow-privilege-escalation",
         "true",
     ]
+
+    if args.cpus is not None:
+        cmd.extend(["--cpu", str(args.cpus)])
+
+    if args.memory:
+        cmd.extend(["--memory", args.memory])
 
     if not args.train:
         cmd.append("--interactive")
@@ -142,7 +154,7 @@ def build_runai_command(
 
     if args.node_type:
         cmd.extend(["--node-pools", args.node_type])
-        if args.node_type in {"h100", "default", "a100-40g"} and not args.train:
+        if args.node_type in {"h200", "h100"} and not args.train:
             cmd.append("--preemptible")
 
     add_env_flags(cmd, literal_env)
