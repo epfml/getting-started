@@ -1,1 +1,8 @@
+.env
+*.env.local
+*.secret
+user.yaml
+__pycache__/
+*.pyc
+.DS_Store
 user.yaml
