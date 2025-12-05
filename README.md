@@ -206,10 +206,7 @@ Optionally configure in `.env`:
 - `WANDB_API_KEY` – Weights & Biases API key
 - `HF_TOKEN` – Hugging Face token
 - `GIT_USER_NAME` / `GIT_USER_EMAIL` – Git identity for commits
-- SSH keys (auto-loaded from `~/.ssh/github` if empty):
-  - `SSH_PRIVATE_KEY_B64`
-  - `SSH_PUBLIC_KEY`
-  - `SSH_KNOWN_HOSTS`
+- GitHub SSH keys (auto-loaded from `~/.ssh/github` if empty):
   - `GITHUB_SSH_KEY_PATH` / `GITHUB_SSH_PUBLIC_KEY_PATH` (to override default paths)
 
 #### Sync your secret
@@ -343,11 +340,11 @@ python csub.py -n <job_name> -g <num_gpus> -t <time> --command "<cmd>" [--train]
 ### Common Examples
 
 ```bash
-# Interactive development pod with 1 GPU
-python csub.py -n sandbox
-
 # CPU-only pod for development
 python csub.py -n dev-cpu
+
+# Interactive development pod with 1 GPU
+python csub.py -n dev-gpu -g 1
 
 # Training job with 4 A100 GPUs
 python csub.py -n experiment --train -g 4 --command "cd /mloscratch/homes/user/code; python train.py"
