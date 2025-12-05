@@ -31,6 +31,7 @@ SECRET_KEYS = {
 
 
 def parse_env_file(path: Path) -> Dict[str, str]:
+    # this is just to avoid having to instsall dotenv for the users
     env: Dict[str, str] = {}
     if not path.exists():
         sys.exit(
@@ -41,6 +42,10 @@ def parse_env_file(path: Path) -> Dict[str, str]:
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
+
+        # Strip inline comments
+        if "#" in line:
+            line = line.split("#", 1)[0].strip()
 
         if "=" not in line:
             sys.exit(f"Invalid line in {path}: {raw_line}")

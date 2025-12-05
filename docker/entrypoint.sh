@@ -180,6 +180,8 @@ log "Linking persistent items"
 link_persistent_item ".zsh_history" "file"
 link_persistent_item ".vscode" "dir"
 link_persistent_item ".vscode-server" "dir"
+link_persistent_item ".cursor" "dir"
+link_persistent_item ".cursor-server" "dir"
 log "Configuring git identity"
 setup_git_identity
 log "Installing SSH material"
