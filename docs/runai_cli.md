@@ -1,5 +1,10 @@
 # Alternative workflow: using the run:ai CLI and base docker images with pre-installed packages
-The setup in this repository is just one way of running and managing the cluster. You can also use the run:ai CLI directly, or use the scripts in this repository as a starting point for your own setup.
+
+The setup in this repository is just one way of running and managing the cluster. The **recommended default for MLO users is to use `csub.py` plus the `.env`-backed configuration** described in the top-level [`../README.md`](../README.md) and the deeper explainer in [`README.md`](README.md).
+
+This document is for **advanced users** who:
+- prefer to drive everything through the raw run:ai CLI, or
+- want to reuse Thijs’ base images directly without the `csub.py` wrapper.
 
 Thijs created a crash course with the main overview for the cluster with [these slides](https://docs.google.com/presentation/d/1n_yimybA3SbdnpMapyAMhA00lq_SN0BMHU_Ji-7mr2w/edit#slide=id.p). Additionally, he created a few base docker images with pre-installed packages:
   * mlo/basic: numpy, jupyter, ...
@@ -8,7 +13,7 @@ Thijs created a crash course with the main overview for the cluster with [these 
   * mlo/tensorflow: basic + computer vision + tensorflow
   * mlo/latex: basic + texlive
 
-To update these, go to https://github.com/epfml/mlocluster-setup. Run `publish.sh` in `docker-images/`. To extend them or make your own: follow a Docker tutorial, or check [the section below](#creating-a-custom-docker-image).
+To update these, go to `https://github.com/epfml/mlocluster-setup` and run `publish.sh` in `docker-images/`. To extend them or make your own: follow a Docker tutorial, or check the **“Images & publishing”** section in [`docs/README.md`](README.md) for how we wire images into the `.env` + `csub.py` workflow.
 
 
 The following description is taken from Thijs' slides and notes:
@@ -41,7 +46,9 @@ runai exec sandbox -it -- su $GASPAR_USERNAME
 
 The `'su $GASPAR_USERNAME'` gives you a shell running under your user account, allowing you to access network storage. While your user can access /mloscratch, the root user cannot.
 
-> [!NOTE] These base images are not compatible with the python script in this repository. The reason is that this python script is set up to use your GASPAR user id and group id as the main user in the docker image. Thijs' images use the root user and have the GASPAR user on top; you can still use the python script, but you need to modify it to use the correct user id and group id.
+> [!NOTE]
+> These base images are **not** plug‑and‑play compatible with the `csub.py` workflow. The scripts in this repo assume that the runtime image honours the LDAP UID/GID passed in via environment (`NB_UID`, `NB_GID`, etc.) and uses `docker/entrypoint.sh` to mirror your Gaspar identity inside the container.  
+> Thijs’ images use a different layout (root plus a separate user). You can still use them through the raw CLI as shown here, or treat them as a starting point for a custom image that you adapt to the new entrypoint / UID model.
 
 ## Running a job (for experiments)
 [[Minimal cifar example including logging to wandb]](https://github.com/epfml/cifar/tree/wandb)

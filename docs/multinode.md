@@ -1,7 +1,8 @@
 # Multi-Node Training with RunAI 
+
 > [!NOTE]  
 > Multi-Node scheduling needs to be enabled on the cluster and you should be using a RunAI CLI which 
-> supports multi-node jobs. 
+> supports multi-node jobs. This document focuses on **raw run:ai CLI usage** for distributed jobs. For the general MLO setup (images, `.env`, `csub.py`, entrypoint, permissions), see the main explainer in [`README.md`](README.md).
 
 > [!CAUTION]  
 > This doc explains an advanced usage of RunAI. 

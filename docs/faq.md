@@ -1,7 +1,7 @@
 # FAQ about the EPFL clusters and the setup of this repo
 This is a list of questions that might pop up when you use the RCP cluster.
 
-If you encounter problems that are not covered in this list or in the [main readme](../README.md), either ...
+If you encounter problems that are not covered in this list or in the high-level [main readme](../README.md) and the deeper [architecture explainer](README.md), either ...
 * Please reach out to the colleagues and other members of the group (e.g. via the #cluster or #it channel on Slack) -- someone might know the answer :)
 * If there are errors you think you should not be getting, open a ticket to `supportrcp@epfl.ch`
 * When appropriate and it's a common error, add the problem and solution to this list to keep it up to date!
@@ -48,7 +48,7 @@ At the same time, always make sure that you have requested the correct resources
 
 <details>
 <summary><i> Where can I see the usage of the cluster? </i> </summary>
-Check the dashboard for the RCP cluster (https://rcp-dashboard.epfl.ch/).
+Check the dashboard for the RCP cluster (https://portal.rcp.epfl.ch/).
 </details>
 
 ---
@@ -62,7 +62,10 @@ Yes, you can -- see <a href="../README.md#creating-a-custom-docker-image">../REA
 
 <details>
 <summary><i> How do I update the csub.py with other arguments? What's the API? </i> </summary>
-The script uses the run:ai yaml API. You can find the documentation (which fields there are, etc.) here: https://docs.run.ai/v2.15/developer/cluster-api/reference/training/ (for training jobs) and https://docs.run.ai/v2.15/developer/cluster-api/reference/interactive/ (interactive jobs).
+For everyday usage, the easiest overview is the **“`csub.py` usage and arguments”** section in the main readme: see [`../README.md#csubpy-usage-and-arguments`](../README.md#csubpy-usage-and-arguments).  
+If you want to understand what it generates under the hood, `csub.py` composes a `runai submit` command and passes most flags through 1:1. For the underlying run:ai YAML/CLI schema you can also consult:
+- https://docs.run.ai/v2.15/developer/cluster-api/reference/training/ (training jobs)
+- https://docs.run.ai/v2.15/developer/cluster-api/reference/interactive/ (interactive jobs)
 </details>
 
 ---
