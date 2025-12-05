@@ -89,14 +89,14 @@ While waiting for access, create a GitHub repository for your code. This is best
 
 #### Install kubectl
 
-Download and install kubectl v1.29.6 (matching the cluster version):
+Download and install kubectl v1.30.11 (matching the cluster version):
 
 ```bash
 # macOS with Apple Silicon
-curl -LO "https://dl.k8s.io/release/v1.29.6/bin/darwin/arm64/kubectl"
+curl -LO "https://dl.k8s.io/release/v1.30.11/bin/darwin/arm64/kubectl"
 
 # Linux (AMD64)
-# curl -LO "https://dl.k8s.io/release/v1.29.6/bin/linux/amd64/kubectl"
+# curl -LO "https://dl.k8s.io/release/v1.30.11/bin/linux/amd64/kubectl"
 
 # Install
 chmod +x ./kubectl
