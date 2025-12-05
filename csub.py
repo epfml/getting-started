@@ -16,6 +16,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from datetime import datetime
+from typing import Dict, List, Tuple
+
 from utils import (
     DEFAULT_ENV_FILE,
     build_runai_command,
@@ -24,8 +27,10 @@ from utils import (
     parse_env_file,
     rendered_env_file,
     shlex_join,
+    parse_duration,
+    add_env_flags,
+    add_secret_env_flags,
 )
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -51,6 +56,113 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--host-ipc", action="store_true", help="Share the host IPC namespace")
     parser.add_argument("--large-shm", action="store_true", help="Request a larger /dev/shm")
     return parser
+
+
+def build_runai_command(
+    args: argparse.Namespace, env: Dict[str, str]
+) -> Tuple[List[str], str]:
+    job_name = (
+        args.name
+        or f"{env['LDAP_USERNAME']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    )
+    image = args.image or env.get("RUNAI_IMAGE")
+    if not image:
+        sys.exit("RUNAI_IMAGE must be defined either in the env file or via --image.")
+
+    secret_name = args.secret_name or env.get("RUNAI_SECRET_NAME")
+    if not secret_name:
+        sys.exit(
+            "RUNAI_SECRET_NAME must be defined in the env file or via --secret-name."
+        )
+
+    namespace = env.get("K8S_NAMESPACE") or env.get("RUNAI_PROJECT")
+    if not namespace:
+        sys.exit("Define K8S_NAMESPACE or RUNAI_PROJECT in the env file.")
+
+    pvc = args.pvc or env.get("SCRATCH_PVC", "mlo-scratch")
+    working_dir = env.get("WORKING_DIR") or f"/mloscratch/homes/{env['LDAP_USERNAME']}"
+    scratch_root = env.get("SCRATCH_HOME_ROOT", "/mloscratch/homes")
+    literal_env = {
+        "HOME": f"/home/{env['LDAP_USERNAME']}",
+        "NB_USER": env["LDAP_USERNAME"],
+        "NB_UID": env["LDAP_UID"],
+        "NB_GROUP": env["LDAP_GROUPNAME"],
+        "NB_GID": env["LDAP_GID"],
+        "WORKING_DIR": working_dir,
+        "SCRATCH_HOME": working_dir,
+        "SCRATCH_HOME_ROOT": scratch_root,
+        "EPFML_LDAP": env["LDAP_USERNAME"],
+        "HF_HOME": "/mloscratch/hf_cache",
+        "UV_PYTHON_VERSION": env.get("UV_PYTHON_VERSION", "3.11"),
+        "TZ": env.get("TZ", "Europe/Zurich"),
+    }
+
+    duration = parse_duration(args.time)
+    user_command = args.command or f"sleep {duration}"
+    shell_command = f"source ~/.zshrc && {user_command}"
+
+    cmd: List[str] = [
+        "runai",
+        "submit",
+        "--name",
+        job_name,
+        "--project",
+        env.get("RUNAI_PROJECT", namespace),
+        "--image",
+        image,
+        "--gpu",
+        str(args.gpus),
+        "--cpu",
+        str(args.cpus),
+        "--memory",
+        args.memory,
+        "--run-as-uid",
+        env["LDAP_UID"],
+        "--run-as-gid",
+        env["LDAP_GID"],
+        "--pvc",
+        f"{pvc}:/mloscratch",
+        "--image-pull-policy",
+        "Always",
+        "--allow-privilege-escalation",
+        "true",
+    ]
+
+    if not args.train:
+        cmd.append("--interactive")
+    else:
+        cmd.extend(["--backoff-limit", str(args.backofflimit)])
+
+    if args.port:
+        cmd.extend(["--port", str(args.port)])
+
+    if args.host_ipc:
+        cmd.append("--host-ipc")
+    if args.large_shm:
+        cmd.append("--large-shm")
+
+    if args.node_type:
+        cmd.extend(["--node-pools", args.node_type])
+        if args.node_type in {"h100", "default", "a100-40g"} and not args.train:
+            cmd.append("--preemptible")
+
+    add_env_flags(cmd, literal_env)
+    add_secret_env_flags(
+        cmd,
+        env,
+        secret_name,
+        env.get("EXTRA_SECRET_KEYS", "").split(","),
+    )
+
+    cmd.extend(
+        [
+            "--",
+            "/bin/zsh",
+            "-c",
+            shell_command,
+        ]
+    )
+    return cmd, job_name
 
 
 def main() -> None:
