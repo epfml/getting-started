@@ -1,190 +1,445 @@
-# More detailed explanation of the setup
+# Architecture Deep Dive
 
-Some more detailed explanation of the setup. This is a more technical explanation of the setup, and is not necessary to follow the getting started guide.
+This document provides a technical explanation of how the MLO cluster setup works. It's **not required** for following the [getting started guide](../README.md), but useful for understanding the system in depth.
 
-Highlights of the revamped setup:
-- `csub.py` now shells out to the run:ai CLI directly. There is no generated YAML anymore, only the CLI command you would type by hand.
-- All personal data (UID/GID, tokens, SSH keys, W&B, HF, git identity, …) lives in a local `.env` file that you keep out of git. Every submission syncs this file into a Kubernetes secret and the pod only reads secrets at runtime.
-- The runtime image is based on the new RCP template, uses `uv` for Python package management, provides a clean zsh setup, and avoids the giant symlink tree from the previous iteration.
-- SSH keys are created on-the-fly for every pod from the secret payload. Nothing sensitive is stored permanently on scratch.
+## Overview
 
-## Runtime environment, entrypoint and permissions
+The revamped setup features:
 
-The Docker image (`docker/Dockerfile`) follows the new RCP template:
+**Modern workflow**
+- `csub.py` wraps the run:ai CLI directly (no generated YAML files)
+- Simple CLI commands that you could type by hand
 
-- base image: `nvcr.io/nvidia/pytorch:24.02-py3` (CUDA 12, PyTorch pre-installed),
-- Debian packages: build tools, git, zsh, ssh client, tmux, etc.,
-- [uv](https://github.com/astral-sh/uv) installed system-wide (`/usr/local/bin/uv`),
-- a custom entrypoint script at `docker/entrypoint.sh`.
+**Security-first approach**
+- All personal data (UID/GID, tokens, SSH keys, W&B, HF, git identity) lives in a local `.env` file
+- `.env` is **never committed to git**
+- Every submission syncs `.env` into a Kubernetes secret
+- Pods only read secrets at runtime
 
-### High-level flow of `entrypoint.sh`
+**Clean runtime environment**
+- Based on the new RCP template
+- Uses [uv](https://github.com/astral-sh/uv) for Python package management
+- Clean zsh setup
+- Minimal symlink tree (only essential VS Code state)
 
-On every pod start, `entrypoint.sh` roughly does the following:
+**Ephemeral secrets**
+- SSH keys are created on-the-fly for every pod from the secret payload
+- Nothing sensitive is stored permanently on scratch
 
-1. **Detects whether it should bootstrap anything at all.**  
-   If the key environment variables (`NB_USER`, `NB_UID`, `NB_GROUP`, `NB_GID`, `SCRATCH_HOME_ROOT`, `WORKING_DIR`) are missing, the script logs a warning and simply `exec`s the original command as-is (you get a plain root shell).  
-   When the pod is started via `csub.py`, these variables are always set.
+---
 
-2. **Mirrors your LDAP user & group inside the container.**  
-   The script:
-   - ensures there is a group with GID `NB_GID` and name `NB_GROUP`, creating/renaming as needed;
-   - ensures a user with UID `NB_UID` and name `NB_USER` exists (creating or renaming an existing UID if necessary);
-   - sets the user’s shell to `/bin/zsh`, home to `/home/${NB_USER}`, puts the user into `sudo`/`adm`, and grants passwordless sudo for convenience.  
-   This is what makes files you create on `/mloscratch` show up with your real EPFL UID/GID.
+## Runtime Environment, Entrypoint, and Permissions
 
-3. **Configures the scratch-backed home and working directory.**  
-   - It computes `SCRATCH_HOME="${SCRATCH_HOME:-${SCRATCH_HOME_ROOT}/${NB_USER}}"` and sets a strict umask: `umask 007` (group-writable, no world access).  
-   - Using a helper `ensure_dir_with_owner`, it creates and permissions:
-     - `SCRATCH_HOME` (your persistent “home” on scratch),
-     - `WORKING_DIR` (where the entrypoint finally `cd`s into),
-     - `HF_HOME` (defaults to `/mloscratch/hf_cache`, shared HF cache).  
-   - Because the underlying NFS export is root-squashed, the script does **not** call `chown` directly. Instead it impersonates a designated “scratch seed” user (by default `mljaggi-admin`) via `sudo -u "${SCRATCH_SEED_USER:-mljaggi-admin}"` to run `mkdir -p` and `chmod 770`. This ensures:
-     - directories exist,
-     - they are writable by the `MLO-unit` group (GID 83070),
-     - they are not readable by unrelated users or the `world`.
+### Docker Image
 
-4. **Stages shell state and dotfiles on scratch.**  
-   The script:
-   - creates a per-user shell root `${SCRATCH_HOME}/.shell`,
-   - copies the base oh-my-zsh and `.zshrc` from `/docker` into that directory (first run only),
-   - sets `ZDOTDIR` to `${SCRATCH_HOME}/.shell`, `ZSH` to the oh-my-zsh folder,
-   - stores shell history in `${SCRATCH_HOME}/.zsh_history` and a global git config in `${SCRATCH_HOME}/.gitconfig`.  
-   It then symlinks these back into `/home/${NB_USER}` so tools expecting `~/.zshrc` and `~/.oh-my-zsh` still work.
+The Docker image (`docker/Dockerfile`) follows the RCP template:
 
-5. **Creates a small set of persistent symlinks.**  
-   Via `link_persistent_item`, it only symlinks:
-   - `.zsh_history` (file),
-   - `.vscode` (dir),
-   - `.vscode-server` (dir),  
-   from scratch into `/home/${NB_USER}`. Everything else in `/home/${NB_USER}` remains ephemeral inside the pod. This keeps the layout predictable while still persisting the important editor state.
+| Component | Details |
+|-----------|---------|
+| **Base image** | `nvcr.io/nvidia/pytorch:24.02-py3` (CUDA 12, PyTorch pre-installed) |
+| **System packages** | Build tools, git, zsh, ssh client, tmux, etc. |
+| **Python manager** | [uv](https://github.com/astral-sh/uv) installed system-wide at `/usr/local/bin/uv` |
+| **Entrypoint** | Custom bootstrap script at `docker/entrypoint.sh` |
 
-6. **Re-hydrates SSH configuration from secrets.**  
-   - Removes and recreates `/home/${NB_USER}/.ssh` with correct `0700` permissions.
-   - If `SSH_PRIVATE_KEY_B64` is set, it is base64-decoded into `id_rsa` (mode `0600`).
-   - If `SSH_PUBLIC_KEY` is set, it is written to `id_rsa.pub` (mode `0644`).
-   - If `SSH_KNOWN_HOSTS` is set, it is written to `known_hosts` (mode `0644`).  
-   Afterwards, the base64 variable is unset inside the process. Since the secret is mounted as environment only, no sensitive material is persisted on scratch.
+### Entrypoint Script: High-Level Flow
 
-7. **Configures uv caches and Python install location.**  
-   - Sets `UV_CACHE_DIR="${SCRATCH_HOME}/.cache/uv"` and `UV_PYTHON_INSTALL_DIR="${SCRATCH_HOME}/.uv"`.
-   - Ensures those directories exist as the LDAP user.  
-   This is why uv-managed Python toolchains survive across pods.
+On every pod start, `entrypoint.sh` performs these steps:
 
-8. **Applies git identity from env (optional).**  
-   If you set `GIT_USER_NAME` / `GIT_USER_EMAIL` in `.env`, the entrypoint runs:
-   - `git config --global user.name ...`
-   - `git config --global user.email ...`  
-   for the LDAP user, writing into the persistent `GIT_CONFIG_GLOBAL` on scratch.
+#### 1. Bootstrap Detection
 
-9. **Hands over control to your command as the LDAP user in `WORKING_DIR`.**  
-   Finally, the script runs:
-   - `sudo -n -H --preserve-env="${SUDO_PRESERVE_VARS}" -u "${NB_USER}" -- /bin/bash -c 'cd "$1"; shift; exec "$@"' bash "${WORKING_DIR}" "$@"`  
-   so your actual container command executes:
-   - as `NB_USER` (your LDAP identity),
-   - from the persistent `WORKING_DIR`,
-   - with key environment variables (`SCRATCH_HOME`, `WORKING_DIR`, `HF_HOME`, uv paths, git config, shell settings) preserved.
+**Action**: Checks for required environment variables
 
-The important takeaway: **anything under `/home/${NB_USER}` is ephemeral; anything under `SCRATCH_HOME` (usually `/mloscratch/homes/<user>`) persists across pods and is group-writable for the MLO-unit group.**
+- If missing (`NB_USER`, `NB_UID`, `NB_GROUP`, `NB_GID`, `SCRATCH_HOME_ROOT`, `WORKING_DIR`): Logs warning and executes command as root
+- If present (always when using `csub.py`): Proceeds with full bootstrap
 
-### Permissions model and shared caches
+#### 2. LDAP User/Group Mirroring
 
-To summarise the permissions setup:
+**Action**: Creates your EPFL identity inside the container
 
-- **UID/GID mapping**
-  - Inside the container, your effective UID is `NB_UID` (from `LDAP_UID` in `.env`), and your primary GID is `NB_GID` (from `LDAP_GID`, typically `83070` for `MLO-unit`).
-  - This means files created on `/mloscratch` show up on the HaaS machine and elsewhere with your real EPFL UID/GID.
+- Ensures group with GID `NB_GID` and name `NB_GROUP` exists
+- Ensures user with UID `NB_UID` and name `NB_USER` exists
+- Configures:
+  - Shell: `/bin/zsh`
+  - Home: `/home/${NB_USER}`
+  - Groups: `sudo`, `adm`
+  - Sudo: Passwordless
 
-- **Group-based sharing**
-  - Directories created by the entrypoint on scratch are `chmod 770` by the “scratch seed” user. Combined with `umask 007` and GID 83070, this ensures:
-    - you and other MLO-unit members can collaborate on shared folders,
-    - other Unix users (“world”) cannot read or write your data.
+**Result**: Files created on `/mloscratch` show up with your real EPFL UID/GID
 
-- **HF cache and other shared state**
-  - `HF_HOME` defaults to `/mloscratch/hf_cache` and is created with group-writable permissions. This allows multiple users to share the Hugging Face cache and avoid re-downloading large artefacts.
-  - If you hit permission errors around `/mloscratch/hf_cache`, first check:
-    - that your UID/GID in `.env` are correct,
-    - that your shells use `umask 007` (entrypoint enforces it for pods; see also the [FAQ entry about HF cache permissions](faq.md)).
+#### 3. Scratch-Backed Storage Configuration
 
-Because the shell defaults to `/bin/zsh` with `ZDOTDIR` on scratch, you can keep your usual zsh customisations; just remember that your **projects, environments, and data should live under `/mloscratch/homes/<user>`**, not in `/home/<user>`.
+**Action**: Sets up persistent storage with correct permissions
 
-## uv-based Python workflow
+- Computes: `SCRATCH_HOME="${SCRATCH_HOME_ROOT}/${NB_USER}"`
+- Sets umask: `umask 007` (group-writable, no world access)
+- Creates and configures:
+  - `SCRATCH_HOME`: Your persistent home (`/mloscratch/homes/<username>`)
+  - `WORKING_DIR`: Where commands execute
+  - `HF_HOME`: Shared Hugging Face cache (`/mloscratch/hf_cache`)
 
-We no longer bootstrap conda environments. Instead each pod comes with uv pre-installed:
+**NFS workaround**: Because NFS is root-squashed, the script impersonates a "scratch seed" user (`mljaggi-admin`) to create directories with `chmod 770`. This ensures:
+- Directories are writable by the `MLO-unit` group (GID 83070)
+- No world-readable access
+
+#### 4. Shell State and Dotfiles
+
+**Action**: Configures persistent shell environment
+
+- Creates: `${SCRATCH_HOME}/.shell/`
+- Copies (first run only): oh-my-zsh and `.zshrc` from `/docker`
+- Configures environment:
+  - `ZDOTDIR`: `${SCRATCH_HOME}/.shell`
+  - `ZSH`: oh-my-zsh folder path
+  - History: `${SCRATCH_HOME}/.zsh_history`
+  - Git config: `${SCRATCH_HOME}/.gitconfig`
+- Symlinks to `/home/${NB_USER}` for compatibility
+
+#### 5. Persistent Symlinks (Minimal)
+
+**Action**: Links only essential state from scratch to home
+
+Symlinks from `SCRATCH_HOME` to `/home/${NB_USER}`:
+- `.zsh_history` (file)
+- `.vscode` (directory)
+- `.vscode-server` (directory)
+
+**Everything else** in `/home/${NB_USER}` is ephemeral.
+
+#### 6. SSH Configuration (Ephemeral)
+
+**Action**: Re-creates SSH keys from secrets on every pod start
+
+- Removes and recreates `/home/${NB_USER}/.ssh` (mode `0700`)
+- Decodes `SSH_PRIVATE_KEY_B64` → `id_rsa` (mode `0600`)
+- Writes `SSH_PUBLIC_KEY` → `id_rsa.pub` (mode `0644`)
+- Writes `SSH_KNOWN_HOSTS` → `known_hosts` (mode `0644`)
+- Unsets `SSH_PRIVATE_KEY_B64` variable
+
+**Security**: No sensitive SSH material is ever stored on scratch.
+
+#### 7. uv Cache Configuration
+
+**Action**: Configures persistent Python package caches
+
+- Sets `UV_CACHE_DIR="${SCRATCH_HOME}/.cache/uv"`
+- Sets `UV_PYTHON_INSTALL_DIR="${SCRATCH_HOME}/.uv"`
+- Creates directories as LDAP user
+
+**Result**: uv-managed Python toolchains survive across pods.
+
+#### 8. Git Identity (Optional)
+
+**Action**: Configures global git identity if provided
+
+If `GIT_USER_NAME` / `GIT_USER_EMAIL` are set in `.env`:
+```bash
+git config --global user.name "..."
+git config --global user.email "..."
+```
+
+Writes to persistent `GIT_CONFIG_GLOBAL` on scratch.
+
+#### 9. Command Execution
+
+**Action**: Hands off to your actual command
+
+Executes:
+```bash
+sudo -n -H --preserve-env="${SUDO_PRESERVE_VARS}" -u "${NB_USER}" -- \
+  /bin/bash -c 'cd "$1"; shift; exec "$@"' bash "${WORKING_DIR}" "$@"
+```
+
+Your command runs:
+- **As**: `NB_USER` (your LDAP identity)
+- **From**: `WORKING_DIR` (persistent)
+- **With**: Environment variables preserved
+
+---
+
+> [!IMPORTANT]
+> **Storage persistence model**:
+> - **Ephemeral**: Everything under `/home/${NB_USER}` (except symlinked items)
+> - **Persistent**: Everything under `SCRATCH_HOME` (`/mloscratch/homes/<user>`)
+> - **Permissions**: Group-writable for MLO-unit group (GID 83070)
+
+### Permissions Model and Shared Caches
+
+#### UID/GID Mapping
+
+| Aspect | Details |
+|--------|---------|
+| **Container UID** | `NB_UID` (from `LDAP_UID` in `.env`) |
+| **Container GID** | `NB_GID` (from `LDAP_GID`, typically `83070` for MLO-unit) |
+| **Effect** | Files created on `/mloscratch` appear with your real EPFL UID/GID on HaaS and other systems |
+
+#### Group-Based Sharing
+
+**Directory permissions**: `chmod 770` + `umask 007` + GID 83070
+
+This ensures:
+- ✅ You and other MLO-unit members can collaborate on shared folders
+- ❌ Other Unix users ("world") cannot read or write your data
+
+#### Shared Caches
+
+**Hugging Face cache**: `HF_HOME=/mloscratch/hf_cache`
+
+- Created with group-writable permissions
+- Allows multiple users to share cached models/datasets
+- Avoids redundant downloads of large artifacts
+
+**Troubleshooting permission errors**:
+
+If you encounter permission errors on `/mloscratch/hf_cache`:
+
+1. Verify `LDAP_UID` and `LDAP_GID` in `.env` are correct
+2. Ensure your shells use `umask 007` (entrypoint enforces this automatically)
+3. See the [FAQ entry about HF cache permissions](faq.md)
+
+#### Shell Customization
+
+- Default shell: `/bin/zsh`
+- `ZDOTDIR`: Points to scratch (`${SCRATCH_HOME}/.shell`)
+- Customizations persist across pods
+
+> [!IMPORTANT]
+> **Storage rule**: Keep **projects, environments, and data** under `/mloscratch/homes/<user>`, not `/home/<user>`.
+
+---
+
+## uv-Based Python Workflow
+
+We use [uv](https://github.com/astral-sh/uv) instead of conda for faster, more reliable Python package management.
+
+### Basic Workflow
 
 ```bash
-cd /mloscratch/homes/<you>/project
+# Navigate to your project
+cd /mloscratch/homes/<username>/project
+
+# Create virtual environment
 uv venv .venv
+
+# Activate environment
 source .venv/bin/activate
+
+# Install dependencies
 uv pip install -r requirements.txt
-# or, if you manage dependencies via pyproject.toml:
+
+# Alternative: Using pyproject.toml
 uv sync
+
+# Run your code
 uv run python train.py
 ```
 
-The uv cache and Python installations live on scratch, so environments survive across pods while keeping the pod filesystem clean.
+### Cache Persistence
 
-## Images & publishing
+- **uv cache**: `${SCRATCH_HOME}/.cache/uv`
+- **Python installations**: `${SCRATCH_HOME}/.uv`
 
-The provided image (`ic-registry.epfl.ch/mlo/mlo:uv-base`) should work for most workflows. If you need custom dependencies:
+Both are on scratch, so environments **survive across pods** while keeping the pod filesystem clean.
+
+### Why uv?
+
+- **Fast**: 10-100x faster than pip
+- **Reliable**: Deterministic dependency resolution
+- **Modern**: Compatible with pyproject.toml and modern Python standards
+
+---
+
+## Images and Publishing
+
+### Default Image
+
+The provided image should work for most workflows:
+
+```
+ic-registry.epfl.ch/mlo/mlo-base:uv1
+```
+
+### Building Custom Images
+
+If you need custom dependencies:
 
 ```bash
-# customise Dockerfile if needed
+# Customize docker/Dockerfile as needed
+
+# Set build variables
 export IMAGE_PATH=mlo/<your-tag>
 export TAG=uv-v2
 export LDAP_USERNAME=<gaspar>
-export LDAP_UID=<uid> LDAP_GROUPNAME=MLO-unit LDAP_GID=83070
+export LDAP_UID=<uid>
+export LDAP_GROUPNAME=MLO-unit
+export LDAP_GID=83070
+
+# Build and push
+cd docker
 ./publish.sh
 ```
 
-`publish.sh` passes the LDAP build args expected by the RCP template and pushes to the EPFL registry. Afterwards set `RUNAI_IMAGE=ic-registry.epfl.ch/${IMAGE_PATH}:${TAG}` in `.env`.
+**What `publish.sh` does**:
+- Passes LDAP build args to Docker
+- Builds the image with proper tags
+- Pushes to EPFL registry
 
-## Secrets, SSH, and kube integration
+**Using your custom image**:
 
-The repo ships with `how_to_use_k8s_secret.txt` as a minimal reminder:
-
+Update `.env`:
+```bash
+RUNAI_IMAGE=ic-registry.epfl.ch/${IMAGE_PATH}:${TAG}
 ```
+
+---
+
+## Secrets, SSH, and Kubernetes Integration
+
+### Kubernetes Secrets Overview
+
+Basic Kubernetes secret usage:
+
+```bash
+# Create secret
 kubectl create secret generic my-secret --from-literal=key=value
+
+# Use in run:ai job
 runai submit --environment WANDB_API_KEY=SECRET:my-secret,key
 ```
 
-`csub.py` automates this; each environment variable listed under `SECRET_KEYS` in the script is turned into `--environment KEY=SECRET:<secretName>,KEY`. To add additional secret-backed variables simply append them (comma separated) to `EXTRA_SECRET_KEYS` in `.env`.
+See the [Kubernetes secret reminder](how_to_use_k8s_secret.md) for more examples.
 
-For SSH we expect the following entries in `.env`:
+### How csub.py Handles Secrets
 
-```
-SSH_PRIVATE_KEY_B64=....                  # base64 encoded private key (auto-filled from ~/.ssh/github if empty)
-SSH_PUBLIC_KEY=ssh-ed25519 AAAA...        # auto-filled from ~/.ssh/github.pub if empty
+`csub.py` automates secret management:
+
+1. Reads all variables from `.env`
+2. Creates/updates Kubernetes secret in your namespace
+3. Maps environment variables to the secret via `--environment KEY=SECRET:<secretName>,KEY`
+
+**Default secret-backed variables**:
+- `WANDB_API_KEY`
+- `HF_TOKEN`
+- `SSH_PRIVATE_KEY_B64`
+- `SSH_PUBLIC_KEY`
+- `SSH_KNOWN_HOSTS`
+- `GIT_USER_NAME`
+- `GIT_USER_EMAIL`
+
+**Adding more secrets**: Append to `EXTRA_SECRET_KEYS` in `.env` (comma-separated).
+
+### SSH Configuration
+
+#### `.env` Configuration
+
+```bash
+# Auto-filled from ~/.ssh/github if empty
+SSH_PRIVATE_KEY_B64=....                    # base64 encoded private key
+SSH_PUBLIC_KEY=ssh-ed25519 AAAA...          # public key
+
+# Known hosts (typically GitHub)
 SSH_KNOWN_HOSTS=github.com ssh-ed25519 AAAA...
 
-# Optional: override which local key gets auto-synced into SSH_*
+# Optional: override default key paths
 GITHUB_SSH_KEY_PATH=/path/to/ssh/private/key
 GITHUB_SSH_PUBLIC_KEY_PATH=/path/to/ssh/public/key
 ```
 
-`csub.py` (via `maybe_populate_github_ssh`) will:
-- use `GITHUB_SSH_KEY_PATH` / `GITHUB_SSH_PUBLIC_KEY_PATH` if set,
-- otherwise default to `~/.ssh/github` and `~/.ssh/github.pub`,
-- and only fill `SSH_PRIVATE_KEY_B64` / `SSH_PUBLIC_KEY` if they are empty.
+#### Auto-Population Logic
 
-The entrypoint then decodes the private key, writes the public key + known hosts file and applies correct permissions, so git over SSH works immediately inside every pod without persisting sensitive material anywhere on scratch.
+`csub.py` (via `maybe_populate_github_ssh`):
+
+1. Checks if `SSH_PRIVATE_KEY_B64` and `SSH_PUBLIC_KEY` are empty
+2. If empty:
+   - Uses `GITHUB_SSH_KEY_PATH` if set, otherwise defaults to `~/.ssh/github`
+   - Uses `GITHUB_SSH_PUBLIC_KEY_PATH` if set, otherwise defaults to `~/.ssh/github.pub`
+   - Reads and base64-encodes the private key
+   - Reads the public key
+3. Injects into Kubernetes secret
+
+#### Runtime Behavior
+
+The entrypoint:
+1. Decodes `SSH_PRIVATE_KEY_B64` → `/home/<user>/.ssh/id_rsa` (mode `0600`)
+2. Writes `SSH_PUBLIC_KEY` → `/home/<user>/.ssh/id_rsa.pub` (mode `0644`)
+3. Writes `SSH_KNOWN_HOSTS` → `/home/<user>/.ssh/known_hosts` (mode `0644`)
+4. Unsets `SSH_PRIVATE_KEY_B64` variable
+
+**Result**: Git over SSH works immediately in every pod, with no sensitive material stored on scratch.
 
 > [!TIP]
-> If all you want is “git over SSH from inside pods”, the easiest path is:
-> - create a dedicated GitHub SSH key locally under `~/.ssh/github`,
-> - leave all `SSH_*` fields empty in `.env`,
-> - optionally configure `GITHUB_SSH_KEY_PATH` if you keep the key elsewhere.
+> **Easiest setup for git over SSH**:
+> 1. Create a dedicated GitHub SSH key: `ssh-keygen -t ed25519 -f ~/.ssh/github`
+> 2. Add `~/.ssh/github.pub` to your GitHub account
+> 3. Leave all `SSH_*` fields empty in `.env`
+> 4. `csub.py` will auto-sync the key for you
 
-For more examples of raw Kubernetes secrets and how they interact with run:ai, see the short [Kubernetes secret reminder](how_to_use_k8s_secret.md).
+---
 
-## Working efficiently
+## Working Efficiently
 
-- **Monitoring**: `runai list jobs`, `runai describe job <name>`, `runai logs <name>`.
-- **VS Code**: use the Kubernetes extension → rcp-cluster → Workloads → Pods → *Attach Visual Studio Code*. Remember to open `/mloscratch/homes/<user>` inside the remote session.
-- **Data hygiene**: everything under `/home/<user>` is ephemeral. Keep projects, checkpoints, and caches under `/mloscratch/homes/<user>` and move long-term artefacts to `mlodata1` via the HaaS machine (`ssh <gaspar>@haas001.rcp.epfl.ch`).
-- **Port forwarding**: `kubectl port-forward <pod> 8888:8888` works once the pod is running.
-- **Cleanup**: `runai list | grep " Succeeded " | awk '{print $1}' | xargs -r runai delete job`.
+### Monitoring Jobs
 
-For distributed or multi-node jobs see [`multinode.md`](multinode.md).  
-For running raw run:ai commands or using ready-made base images, see [`runai_cli.md`](runai_cli.md).  
-Frequently asked questions live in [`faq.md`](faq.md).  
-The high-level, user-facing getting-started guide is the top-level [`../README.md`](../README.md).
+```bash
+# List all jobs
+runai list jobs
+
+# Detailed job status
+runai describe job <name>
+
+# View logs
+runai logs <name>
+
+# Connect to pod
+runai exec <name> -it -- zsh
+```
+
+### VS Code Remote Development
+
+1. Install Kubernetes and Dev Containers extensions
+2. Navigate: **Kubernetes** → **rcp-cluster** → **Workloads** → **Pods**
+3. Right-click pod → **Attach Visual Studio Code**
+4. Open `/mloscratch/homes/<username>` in the remote session
+
+See [Managing Workflows: VS Code](managing_workflows.md#using-vs-code) for details.
+
+### Data Hygiene
+
+| Location | Persistence | Use For |
+|----------|-------------|---------|
+| `/home/<user>` | **Ephemeral** | Nothing important (lost when pod dies) |
+| `/mloscratch/homes/<user>` | **Persistent** | Projects, checkpoints, caches, code |
+| `mlodata1` | **Long-term archive** | Published results, paper artifacts |
+
+**Moving to archive**:
+```bash
+ssh <gaspar>@haas001.rcp.epfl.ch
+rsync -avP /mnt/mlo/scratch/homes/<user>/results /mnt/mlo/mlodata1/<user>/
+```
+
+### Port Forwarding
+
+Access services running in pods:
+
+```bash
+kubectl port-forward <pod-name> 8888:8888
+```
+
+Then visit `http://localhost:8888`
+
+### Cleanup
+
+Remove completed jobs:
+
+```bash
+runai list | grep " Succeeded " | awk '{print $1}' | xargs -r runai delete job
+```
+
+---
+
+## Additional Documentation
+
+- **[Managing Workflows](managing_workflows.md)**: Day-to-day operations, pod management, file management
+- **[Multi-node Training](multinode.md)**: Distributed training across multiple nodes
+- **[Run:ai CLI](runai_cli.md)**: Alternative workflows using raw run:ai commands
+- **[FAQ](faq.md)**: Frequently asked questions and troubleshooting
+- **[Main README](../README.md)**: Getting started guide for new users

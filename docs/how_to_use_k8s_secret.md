@@ -1,25 +1,104 @@
-> [!NOTE]  
-> When you are using the MLO `csub.py` workflow, you **do not** need to manage secrets manually like this in most cases. Instead:
-> - you keep all secret values in your local `.env` file (see the `user.env.example` template),
-> - `csub.py` renders that file into a Kubernetes secret for your namespace (see section **“Local configuration & secrets”** and **“Secrets, SSH, and kube integration”** in [`README.md`](README.md)),
-> - and maps selected keys into the pod via `--environment KEY=SECRET:<secretName>,KEY`.  
-> This file is only meant as a minimal refresher on the underlying Kubernetes/run:ai mechanism if you ever need to debug or craft custom jobs by hand.
+# Kubernetes Secrets with run:ai
+
+This is a quick reference for using Kubernetes secrets with run:ai jobs.
+
+> [!NOTE]
+> **Using the MLO `csub.py` workflow?** You **don't need to manage secrets manually**.
+>
+> Instead:
+> 1. Store all secrets in your local `.env` file (see `user.env.example`)
+> 2. `csub.py` automatically syncs `.env` into a Kubernetes secret
+> 3. Secrets are mapped into pods via `--environment KEY=SECRET:<secretName>,KEY`
+>
+> See:
+> - [Architecture: Secrets, SSH, and Kubernetes Integration](README.md#secrets-ssh-and-kubernetes-integration)
+> - [Main README: Configure Your `.env` File](../README.md#4-configure-your-env-file)
+>
+> This reference is for **debugging** or **crafting custom jobs by hand**.
+
+---
+
+## Basic Usage
+
+### 1. Create a Kubernetes Secret
 
 ```bash
-# Create a generic Kubernetes secret
 kubectl create secret generic my-secret --from-literal=key1=supersecret
-
-# Submit a RunAI job
-runai submit --name demo-secret \
-  # ... other submission flags ... \
-  --environment WANDB_API_KEY=SECRET:my-secret,key1 \
-  --command \
-  -- /bin/bash -ic "command-line-to-run"
 ```
 
-# Check secret inside the job container
+### 2. Submit a run:ai Job with Secret
+
 ```bash
-runai bash demo-secret
-root@demo-secret-0-0:/# env | grep WANDB_API_KEY
-WANDB_API_KEY=supersecret
+runai submit --name demo-secret \
+  --image ic-registry.epfl.ch/mlo/mlo-base:uv1 \
+  --pvc mlo-scratch:/mloscratch \
+  --environment WANDB_API_KEY=SECRET:my-secret,key1 \
+  -- /bin/bash -ic "sleep infinity"
 ```
+
+**Syntax**: `--environment VAR_NAME=SECRET:<secret-name>,<key-name>`
+
+### 3. Verify Secret Inside Container
+
+```bash
+# Connect to the pod
+runai exec demo-secret -it -- bash
+
+# Check environment variable
+env | grep WANDB_API_KEY
+# Output: WANDB_API_KEY=supersecret
+```
+
+---
+
+## Multiple Secrets
+
+You can reference multiple secrets:
+
+```bash
+runai submit --name multi-secret \
+  --image ic-registry.epfl.ch/mlo/mlo-base:uv1 \
+  --environment WANDB_API_KEY=SECRET:my-secret,wandb_key \
+  --environment HF_TOKEN=SECRET:my-secret,hf_token \
+  --environment CUSTOM_VAR=SECRET:other-secret,custom_key \
+  -- /bin/bash -ic "sleep infinity"
+```
+
+---
+
+## Managing Secrets
+
+### List Secrets
+
+```bash
+kubectl get secrets
+```
+
+### View Secret Details
+
+```bash
+kubectl describe secret my-secret
+```
+
+### Delete a Secret
+
+```bash
+kubectl delete secret my-secret
+```
+
+### Update a Secret
+
+Delete and recreate:
+
+```bash
+kubectl delete secret my-secret
+kubectl create secret generic my-secret --from-literal=key1=newsupersecret
+```
+
+---
+
+## Additional Resources
+
+- [Kubernetes Secrets Documentation](https://kubernetes.io/docs/concepts/configuration/secret/)
+- [run:ai Environment Variables](https://docs.run.ai/v2.15/developer/cluster-api/reference/training/#environment-variables)
+- [MLO Setup: Architecture Deep Dive](README.md)

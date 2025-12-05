@@ -1,90 +1,172 @@
-# FAQ about the EPFL clusters and the setup of this repo
-This is a list of questions that might pop up when you use the RCP cluster.
+# Frequently Asked Questions (FAQ)
 
-If you encounter problems that are not covered in this list or in the high-level [main readme](../README.md) and the deeper [architecture explainer](README.md), either ...
-* Please reach out to the colleagues and other members of the group (e.g. via the #-cluster or #-it channel on Slack) -- someone might know the answer :)
-* If there are errors you think you should not be getting, open a ticket to `supportrcp@epfl.ch`
-* When appropriate and it's a common error, add the problem and solution to this list to keep it up to date!
+This FAQ covers common questions about the EPFL RCP cluster and this setup.
 
+## Getting Help
 
-___ 
-<details>
-<summary><i>I'm confused by the storages mlodata, mloscratch... Where should I store my files or training data ?</i> </summary>
-We agreee that the storage system can be confusing -- simply put: keep everything in your personal home folder on mloscratch, including training data, because only scratch can be mounted on a pod. The other storage mlodata is just for very long-term (e.g. replication for published papers). Moving things onto the cluster or between folders can also be done easily via <a href="../README.md#the-haas-machine">HaaS machine </a>. For more details on storage, see <a href="../README.md#file-management">file management</a> again.
-</details>
+If your question isn't answered here or in the [main README](../README.md) and [architecture explainer](README.md):
 
-___ 
-<details>
-<summary><i>I submitted my job successfully (at least I did not see any error), but my job does not show up with the command `runai list jobs`.</i> </summary>
-We have found a scenario where jobs do not appear after they were submitted with a *wrong* PVC name -- notably, this can happen with the new RCP-Prod that renamed "runai-mlo-$GASPAR_USERNAME-scratch" to "mlo-scratch". Check the <a href=https://rcpepfl.run.ai/workloads>
-web interface</a> where your jobs should still be listed. At the moment of writing this, the jobs just end up in neverland and cannot be deleted or stopped :D So the easiest is just to resubmit the job with the correct PVC.
-</details>
+- **Ask colleagues**: Reach out on Slack channels `#-cluster` or `#-it`
+- **Report issues**: Open a ticket to `supportrcp@epfl.ch` for technical problems
+- **Contribute**: Add common problems and solutions to this FAQ!
 
 ---
 
-<details>
+## Storage and File Management
 
-<summary><i>I want to move data onto the cluster or between mlodata and mloscratch. How do I do that?</i> </summary>
-Moving things onto the cluster or between folders can also be done easily via <a href="../README.md#the-haas-machine"> HaaS machine</a>.
-</details>
+### Where should I store my files and training data?
 
----
+**TL;DR**: Keep everything in `/mloscratch/homes/<your_username>`, including training data.
 
-<details>
-<summary><i> When connecting to a pod via VS Code, it just opens an empty window. Why is my code not restored?</i> </summary>
-Note that when opening the VS code window, it opens the home folder of the pod (not scratch!). You can navigate to your working directory (code) by navigating to `/mloscratch/homes/<your username>`.
-</details>
+**Explanation**: The storage system has multiple types:
+- **`mloscratch`**: High-performance storage that can be mounted on pods (use this for everything)
+- **`mlodata1`**: Long-term replicated storage for permanent artifacts (papers, final results)
 
----
+Only `mloscratch` can be mounted on pods, so all your code and training data must be there.
 
-<details>
-<summary><i> My job is shown as "Pending" since quite some time. Why? </i> </summary>
-It might just be that the cluster is busy and you need to wait a bit. See the question below.
+**See also**: [File Management guide](managing_workflows.md#file-management)
 
-At the same time, always make sure that you have requested the correct resources (CPU, memory, GPU, etc.) and that you are not exceeding the limits of the cluster. For example, if you launched the csub script with a node type such as "G10", but you are on RCP, the job will not start because the node type does not exist on RCP. 
-</details>
+### How do I move data onto the cluster or between storage systems?
 
----
+Use the **HaaS machine** to transfer files between `mlodata1` and `mloscratch`:
 
-<details>
-<summary><i> Where can I see the usage of the cluster? </i> </summary>
-Check the dashboard for the RCP cluster (https://portal.rcp.epfl.ch/).
-</details>
+```bash
+ssh <gaspar_username>@haas001.rcp.epfl.ch
+```
+
+**See also**: [HaaS Machine guide](managing_workflows.md#the-haas-machine)
 
 ---
 
-<details>
-<summary><i> Can I create my own Docker images? </i> </summary>
-Yes, you can -- see <a href="../README.md#creating-a-custom-docker-image">../README.md#creating-a-custom-docker-image</a> for more information.
-</details>
+## Job Management
+
+### My job doesn't show up in `runai list jobs`
+
+**Likely cause**: Wrong PVC (Persistent Volume Claim) name
+
+This can happen when submitting with an incorrect PVC name. For example, RCP-Prod renamed storage from `runai-mlo-$GASPAR_USERNAME-scratch` to `mlo-scratch`.
+
+**Solution**:
+1. Check the [run:ai web interface](https://rcpepfl.run.ai/workloads) – your job may still be listed there
+2. Resubmit the job with the correct PVC name
+
+> [!NOTE]
+> Jobs with wrong PVC names may end up in an unmanageable state and cannot be deleted or stopped. Resubmission is the easiest fix.
+
+### My job has been "Pending" for a long time
+
+**Possible causes**:
+
+1. **Cluster is busy** – Wait a bit longer, check the [dashboard](https://portal.rcp.epfl.ch/)
+
+2. **Incorrect resources requested**
+   - Verify CPU, memory, and GPU requests are within limits
+   - Check node type is correct (e.g., don't use `G10` on RCP cluster)
+   - Use `runai describe job <name>` to see detailed status
+
+**Check cluster usage**: https://portal.rcp.epfl.ch/
 
 ---
 
-<details>
-<summary><i> How do I update the csub.py with other arguments? What's the API? </i> </summary>
-For everyday usage, the easiest overview is the **“`csub.py` usage and arguments”** section in the main readme: see [`../README.md#csubpy-usage-and-arguments`](../README.md#csubpy-usage-and-arguments).  
-If you want to understand what it generates under the hood, `csub.py` composes a `runai submit` command and passes most flags through 1:1. For the underlying run:ai YAML/CLI schema you can also consult:
-- https://docs.run.ai/v2.15/developer/cluster-api/reference/training/ (training jobs)
-- https://docs.run.ai/v2.15/developer/cluster-api/reference/interactive/ (interactive jobs)
-</details>
+## VS Code
+
+### VS Code opens an empty window when connecting to my pod
+
+**Explanation**: VS Code opens the pod's home folder (`~/`) by default, not scratch.
+
+**Solution**: Navigate to `/mloscratch/homes/<your_username>` after connecting.
+
+**See also**: [VS Code guide](managing_workflows.md#using-vs-code)
 
 ---
 
-<details>
-<summary><i> I get some permission error such as PermissionError: [Errno 13] Permission denied: '/mloscratch/hf_cache/...`. </i> </summary>
-This is probably related to the user and group permissions. Two things: for containers, make sure your user id is yours and the group id is 83070 (which stands for the runai-mlo group).
-Also, please add the following line to your .bashrc or .zshrc: umask 007 (e.g. via echo "umask 007" >> ~/.zshrc. Make sure that this is persistent or always done for all containers you use).
-If the problem persists, please contact us in the #-it or #-cluster channel. 
+## Docker Images
 
-As an explanation, we set up the huggingface cache (via the environment variable HF_HOME=/mloscratch/hf_cache) to be shared between users so that large datasets, checkpoints, ... are not downloaded repeatedly. You can also deactivate the huggingface cache, but it should work; so let us know if there's a problem.
-</details>
+### Can I create my own Docker images?
+
+**Yes!** See the [Creating Custom Docker Images](../README.md#creating-custom-docker-images) guide in the main README.
+
+**Quick steps**:
+1. Get registry access at https://ic-registry.epfl.ch/
+2. Modify `docker/Dockerfile`
+3. Build and push with `docker/publish.sh`
 
 ---
 
-<details>
-<summary><i> I keep getting torch cuda out of memory errors, is there a way to ensure I have enough GPU memory available to be allocated? </i> </summary>
-If you request one GPU, you also receive the full GPU and its RAM. This means that getting an OOM error means you are saturating the GPU's memory, e.g. 40GB for the A100s on the IT cluster.
+## csub.py
 
-You can try and debug your code to see where the memory is being used up. Some tools like nvidia-smi or nvtop might help you with that.
-If debugging does not solve your issue, you can try switching to RCP where there are 80GB RAM GPUs.
-</details>
+### What are the available csub.py arguments?
+
+See the comprehensive reference in the main README:
+
+**[`csub.py` Usage and Arguments](../README.md#csubpy-usage-and-arguments)**
+
+**For advanced users**: `csub.py` wraps `runai submit` and passes most flags 1:1. See the run:ai docs:
+- [Training jobs API](https://docs.run.ai/v2.15/developer/cluster-api/reference/training/)
+- [Interactive jobs API](https://docs.run.ai/v2.15/developer/cluster-api/reference/interactive/)
+
+---
+
+## Permissions and Errors
+
+### I get permission errors for `/mloscratch/hf_cache/...`
+
+**Cause**: Incorrect user/group permissions or umask settings
+
+**Solution**:
+
+1. **Verify UID/GID in `.env`**:
+   - `LDAP_UID`: Your numeric user ID
+   - `LDAP_GID`: `83070` (runai-mlo group)
+
+2. **Set umask**:
+   ```bash
+   echo "umask 007" >> ~/.zshrc
+   source ~/.zshrc
+   ```
+   This ensures group-writable permissions.
+
+3. **Still having issues?** Contact `#-it` or `#-cluster` on Slack
+
+**Background**: The Hugging Face cache (`HF_HOME=/mloscratch/hf_cache`) is shared between users to avoid redundant downloads. Correct permissions are essential for shared access.
+
+---
+
+## GPU and Memory
+
+### I keep getting CUDA out of memory errors
+
+**Understanding GPU allocation**: When you request 1 GPU, you get the **full GPU and all its RAM**. An OOM error means you're saturating the GPU's memory.
+
+**Debugging steps**:
+
+1. **Check memory usage**:
+   ```bash
+   nvidia-smi  # Basic GPU monitoring
+   nvtop       # Interactive GPU monitoring
+   ```
+
+2. **Optimize your code**:
+   - Reduce batch size
+   - Enable gradient checkpointing
+   - Use mixed precision training (fp16/bf16)
+   - Free unused tensors
+
+3. **Use larger GPUs**:
+   - Switch to A100-80GB or H200-140GB
+   - Example: `python csub.py -n job --node_type h200 ...`
+
+**GPU memory by type**:
+- V100: 40GB
+- A100-40GB: 40GB
+- A100-80GB: 80GB
+- H100: 80GB
+- H200: 140GB
+
+---
+
+## Still Need Help?
+
+- **Slack**: `#-cluster` or `#-it` channels
+- **Support**: supportrcp@epfl.ch
+- **Main docs**: [README](../README.md), [Architecture](README.md), [Workflows](managing_workflows.md)
