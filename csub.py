@@ -46,6 +46,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-i", "--image", type=str, help="Override RUNAI_IMAGE from the env file")
     parser.add_argument("-p", "--port", type=int, help="Expose a container port")
     parser.add_argument("--train", action="store_true", help="Submit as a training workload")
+    parser.add_argument("--distributed", action="store_true", help="Submit a distributed workload")
+    parser.add_argument("--workers", default=0, type=int, help="Only read for distributed workloads. Number of nodes IN ADDITION to the master node. I.e., the total number of nodes is the number of workers + 1 (the master node)")
     parser.add_argument("--dry", action="store_true", help="Print the generated runai command")
     parser.add_argument("--env-file", type=str, default=DEFAULT_ENV_FILE, help="Path to the .env file (default: .env in the repo root)")
     parser.add_argument("--sync-secret-only", action="store_true", help="Create/refresh the Kubernetes secret and exit without submitting a job")
@@ -62,6 +64,8 @@ def build_parser() -> argparse.ArgumentParser:
 def build_runai_command(
     args: argparse.Namespace, env: Dict[str, str]
 ) -> Tuple[List[str], str]:
+    assert args.train + args.distributed <= 1, "Choose --train or --distributed but not both"
+
     job_name = (
         args.name
         or f"{env['LDAP_USERNAME']}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -116,9 +120,9 @@ def build_runai_command(
     user_command = args.command or f"sleep {duration}"
     shell_command = f"source ~/.zshrc && {user_command}"
 
-    cmd: List[str] = [
-        "runai",
-        "submit",
+    cmd: List[str] = ["runai"]
+    cmd.extend(["submit-dist", "pytorch"] if args.distributed else ["submit"])
+    cmd.extend([
         "--name",
         job_name,
         "--project",
@@ -137,7 +141,7 @@ def build_runai_command(
         "Always",
         "--allow-privilege-escalation",
         "true",
-    ]
+    ])
 
     if args.cpus is not None:
         cmd.extend(["--cpu", str(args.cpus)])
@@ -145,7 +149,7 @@ def build_runai_command(
     if args.memory:
         cmd.extend(["--memory", args.memory])
 
-    if not args.train:
+    if not args.train and not args.distributed:
         cmd.append("--interactive")
     else:
         cmd.extend(["--backoff-limit", str(args.backofflimit)])
@@ -160,8 +164,15 @@ def build_runai_command(
 
     if args.node_type:
         cmd.extend(["--node-pools", args.node_type])
-        if args.node_type in {"h200", "h100"} and not args.train:
+        if args.node_type in {"h200", "h100"} and not args.train and not args.distributed:
             cmd.append("--preemptible")
+            
+    if args.distributed:
+        cmd.extend([
+            "--workers", str(args.workers),
+            "--annotation", "k8s.v1.cni.cncf.io/networks=kube-system/roce", 
+            "--extended-resource", "rdma/rdma=1"
+        ])
 
     add_env_flags(cmd, literal_env)
     add_secret_env_flags(
@@ -220,7 +231,6 @@ def main() -> None:
     print(f"runai logs {job_name}")
     print(f"runai exec {job_name} -it -- zsh")
     print(f"runai delete job {job_name}")
-
 
 if __name__ == "__main__":
     main()
