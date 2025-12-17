@@ -72,6 +72,6 @@ RUN cp -r /root/.oh-my-zsh /docker/.oh-my-zsh && \
 # Set root password only because some infra still demands it
 RUN echo 'root:root' | chpasswd
 
-WORKDIR /workspace
+WORKDIR /mloscratch/homes/
 ENTRYPOINT ["/docker/entrypoint.sh"]
 CMD ["/bin/zsh"]
