@@ -122,10 +122,14 @@ link_persistent_item() {
 
 setup_git_identity() {
   # Optional global git identity pulled from env
-  if [[ -n "${GIT_USER_NAME:-}" ]]; then
+  local existing_name existing_email
+  existing_name="$(run_as_nb_user git config --global --get user.name || true)"
+  existing_email="$(run_as_nb_user git config --global --get user.email || true)"
+
+  if [[ -n "${GIT_USER_NAME:-}" && -z "${existing_name}" ]]; then
     run_as_nb_user git config --global user.name "${GIT_USER_NAME}"
   fi
-  if [[ -n "${GIT_USER_EMAIL:-}" ]]; then
+  if [[ -n "${GIT_USER_EMAIL:-}" && -z "${existing_email}" ]]; then
     run_as_nb_user git config --global user.email "${GIT_USER_EMAIL}"
   fi
 }
@@ -190,4 +194,5 @@ log "Configuring uv caches"
 configure_uv
 
 log "Handing over control to $*"
-exec sudo -n -H --preserve-env="${SUDO_PRESERVE_VARS}" -u "${NB_USER}" -- /bin/bash -c 'cd "$1"; shift; exec "$@"' bash "${WORKING_DIR}" "$@"
+# Preserve the full environment (incl. variables injected by the runner) when switching user
+exec sudo -n -E -H -u "${NB_USER}" -- /bin/bash -c 'cd "$1"; shift; exec "$@"' bash "${WORKING_DIR}" "$@"
