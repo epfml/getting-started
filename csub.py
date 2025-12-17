@@ -39,6 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--uid", type=int, help="Run the container as this UID instead of LDAP_UID from the env file")
     parser.add_argument("--gid", type=int, help="Run the container as this GID instead of LDAP_GID from the env file")
     parser.add_argument("-c", "--command", type=str, help="Command to run inside the container (default: sleep for the requested duration)")
+    parser.add_argument("--exp-folder", type=str, help="Experiment folder to use. This will be the working directory of the job.")
+    parser.add_argument("--venv", type=str, help="Virtual environment to use. This will be the virtual environment of the job.")
     parser.add_argument("-t", "--time", type=str, help="Maximum runtime formatted as 12h, 2d6h30m, ... (default 12h for the keep-alive sleep)")
     parser.add_argument("-g", "--gpus", type=int, default=0, help="Number of GPUs")
     parser.add_argument("--cpus", type=int, help="Number of CPUs (omit to use platform default)")
@@ -118,7 +120,14 @@ def build_runai_command(
 
     duration = parse_duration(args.time)
     user_command = args.command or f"sleep {duration}"
-    shell_command = f"source ~/.zshrc && {user_command}"
+    shell_command = f"source ~/.zshrc"
+
+    if args.exp_folder:
+        shell_command += f" && cd {args.exp_folder}"
+    if args.venv:
+        shell_command += f" && source {args.venv}/bin/activate"
+
+    shell_command += f" && {user_command}"
 
     cmd: List[str] = ["runai"]
     cmd.extend(["submit-dist", "pytorch"] if args.distributed else ["submit"])
