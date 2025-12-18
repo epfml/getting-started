@@ -48,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-i", "--image", type=str, help="Override RUNAI_IMAGE from the env file")
     parser.add_argument("-p", "--port", type=int, help="Expose a container port")
     parser.add_argument("--train", action="store_true", help="Submit as a training workload")
-    parser.add_argument("--workers", default=0, type=int, help="Only read for distributed workloads. Number of nodes IN ADDITION to the master node. I.e., the total number of nodes is the number of workers + 1 (the master node)")
+    parser.add_argument("--workers", default=0, type=int, help="Number of nodes IN ADDITION to the master node. I.e., the total number of nodes is the number of workers + 1 (the master node)")
     parser.add_argument("--dry", action="store_true", help="Print the generated runai command")
     parser.add_argument("--env-file", type=str, default=DEFAULT_ENV_FILE, help="Path to the .env file (default: .env in the repo root)")
     parser.add_argument("--sync-secret-only", action="store_true", help="Create/refresh the Kubernetes secret and exit without submitting a job")
