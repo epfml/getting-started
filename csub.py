@@ -92,12 +92,11 @@ def build_runai_command(
 
     scratch_mount_path = env.get("SCRATCH_MOUNT_PATH", "/mloscratch")
     scratch_root = env.get("SCRATCH_HOME_ROOT") or f"{scratch_mount_path}/homes"
+    scratch_home = env.get("SCRATCH_HOME") or f"{scratch_root}/{env['LDAP_USERNAME']}"
     working_dir = env.get("WORKING_DIR") or f"{scratch_root}/{env['LDAP_USERNAME']}"
     hf_home = env.get("HF_HOME") or f"{scratch_mount_path}/hf_cache"
     run_uid = str(args.uid) if args.uid is not None else env["LDAP_UID"]
     run_gid = str(args.gid) if args.gid is not None else env["LDAP_GID"]
-
-    scratch_home = working_dir
 
     literal_env = {
         "HOME": f"/home/{env['LDAP_USERNAME']}",
