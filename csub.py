@@ -12,6 +12,7 @@ Kubernetes secret before each submission.
 from __future__ import annotations
 
 import argparse
+import base64
 import subprocess
 import sys
 from pathlib import Path
@@ -191,12 +192,17 @@ def build_runai_command(
         env.get("EXTRA_SECRET_KEYS", "").split(","),
     )
 
+    b64_payload = base64.b64encode(shell_command.encode("utf-8")).decode("utf-8")
     cmd.extend(
         [
             "--",
             "/bin/zsh",
             "-c",
-            shell_command,
+            (
+                f"echo {b64_payload} | base64 -d > /tmp/job_payload.sh && "
+                f"cat /tmp/job_payload.sh && "
+                f"/bin/zsh /tmp/job_payload.sh"
+            )
         ]
     )
     return cmd, job_name
