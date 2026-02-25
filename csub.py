@@ -200,8 +200,8 @@ def build_runai_command(
             "-c",
             (
                 f"echo {b64_payload} | base64 -d > /tmp/job_payload.sh && "
-                f"cat /tmp/job_payload.sh && "
-                f"/bin/zsh /tmp/job_payload.sh"
+                "cat /tmp/job_payload.sh && "
+                "/bin/zsh /tmp/job_payload.sh"
             )
         ]
     )
