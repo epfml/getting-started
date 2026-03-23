@@ -100,7 +100,7 @@ def build_runai_command(
     run_uid = str(args.uid) if args.uid is not None else env["LDAP_UID"]
     run_gid = str(args.gid) if args.gid is not None else env["LDAP_GID"]
 
-    literal_env = {
+    literal_env = env | {
         "HOME": f"/home/{env['LDAP_USERNAME']}",
         "NB_USER": env["LDAP_USERNAME"],
         "NB_UID": run_uid,
@@ -183,11 +183,10 @@ def build_runai_command(
             "--annotation", "k8s.v1.cni.cncf.io/networks=kube-system/roce", 
             "--extended-resource", "rdma/rdma=1"
         ])
-
-    add_env_flags(cmd, literal_env)
-    add_secret_env_flags(
+        
+    add_env_flags(
         cmd,
-        env,
+        literal_env,
         secret_name,
         env.get("EXTRA_SECRET_KEYS", "").split(","),
     )
