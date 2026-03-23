@@ -182,7 +182,7 @@ def build_runai_command(
             "--annotation", "k8s.v1.cni.cncf.io/networks=kube-system/roce", 
             "--extended-resource", "rdma/rdma=1"
         ])
-        
+
     add_env_flags(
         cmd,
         literal_env,
