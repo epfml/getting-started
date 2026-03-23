@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+v#!/usr/bin/python3
 
 """Utility helpers shared by the csub CLI entrypoint."""
 
@@ -145,8 +145,12 @@ def ensure_secret(env_path: Path, namespace: str, secret_name: str) -> None:
 
 def add_env_flags(cmd: List[str], values: Dict[str, str], secret_name: str, extra_secret_keys: Iterable[str]) -> None:
     secret_keys = set(SECRET_KEYS).union(k.strip() for k in extra_secret_keys if k.strip())
+    ignore_keys = {
+        "LDAP_UID",  # set automatically
+        "LDAP_GID",  # set automatically
+    }
     for key, value in values.items():
-        if value == "":
+        if value == "" or key in ignore_keys:
             continue
 
         if key in secret_keys:
