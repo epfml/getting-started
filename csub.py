@@ -29,7 +29,6 @@ from utils import (
     shlex_join,
     parse_duration,
     add_env_flags,
-    add_secret_env_flags,
 )
 
 def build_parser() -> argparse.ArgumentParser:
