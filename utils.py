@@ -143,24 +143,16 @@ def ensure_secret(env_path: Path, namespace: str, secret_name: str) -> None:
         sys.exit(f"kubectl failed to apply the secret:\n{exc.stderr}")
 
 
-def add_env_flags(cmd: List[str], values: Dict[str, str]) -> None:
+def add_env_flags(cmd: List[str], values: Dict[str, str], secret_name: str, extra_secret_keys: Iterable[str]) -> None:
+    secret_keys = set(SECRET_KEYS).union(k.strip() for k in extra_secret_keys if k.strip())
     for key, value in values.items():
         if value == "":
             continue
-        cmd.extend(["--environment", f"{key}={value}"])
 
-
-def add_secret_env_flags(
-    cmd: List[str],
-    env: Dict[str, str],
-    secret_name: str,
-    extra_secret_keys: Iterable[str],
-) -> None:
-    keys = set(SECRET_KEYS).union(k.strip() for k in extra_secret_keys if k.strip())
-    for key in sorted(keys):
-        if key not in env or env[key] == "":
-            continue
-        cmd.extend(["--environment", f"{key}=SECRET:{secret_name},{key}"])
+        if key in secret_keys:
+            cmd.extend(["--environment", f"{key}=SECRET:{secret_name},{key}"])
+        else:
+            cmd.extend(["--environment", f"{key}={value}"])
 
 
 __all__ = [
