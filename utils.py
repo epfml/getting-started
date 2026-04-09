@@ -1,4 +1,4 @@
-v#!/usr/bin/python3
+#!/usr/bin/python3
 
 """Utility helpers shared by the csub CLI entrypoint."""
 
