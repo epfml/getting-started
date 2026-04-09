@@ -148,6 +148,10 @@ def add_env_flags(cmd: List[str], values: Dict[str, str], secret_name: str, extr
     ignore_keys = {
         "LDAP_UID",  # set automatically
         "LDAP_GID",  # set automatically
+        # csub-only control/config values not meant for the container environment
+        "EXTRA_SECRET_KEYS",
+        "GITHUB_SSH_KEY_PATH",
+        "GITHUB_SSH_PUBLIC_KEY_PATH",
     }
     for key, value in values.items():
         if value == "" or key in ignore_keys:
