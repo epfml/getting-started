@@ -154,7 +154,7 @@ See the comprehensive reference in the main README:
 
 3. **Use larger GPUs**:
    - Switch to A100-80GB or H200-140GB
-   - Example: `python csub.py -n job --node_type h200 ...`
+   - Example: `python csub.py -n job --node-type h200 ...`
 
 **GPU memory by type**:
 - V100: 40GB

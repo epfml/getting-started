@@ -57,7 +57,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--secret-name", type=str, help="Override RUNAI_SECRET_NAME from the env file")
     parser.add_argument("--pvc", type=str, help="Override SCRATCH_PVC from the env file")
     parser.add_argument("--backofflimit", type=int, default=0, help="Retries before marking a training job as failed")
-    parser.add_argument("--node-type", nargs="*", type=str, choices=["v100", "h100", "h200", "default", "a100-40g"], default=[], help="GPU node pool(s) to target. Multiple values are accepted; the job will be scheduled on the first pool where it fits")
+    # Pool names are managed by the cluster, so let run:ai validate them.
+    parser.add_argument(
+        "--node-type", nargs="*", type=str, default=[], metavar="POOL",
+        help="GPU node pool(s) to target (e.g. b300, h200, h100, default, a100-40g, v100). "
+             "Any cluster pool name is accepted and passed to run:ai. Multiple values are "
+             "accepted; the job will be scheduled on the first pool where it fits. "
+             "Omit to use the platform default.",
+    )
     parser.add_argument("--host-ipc", action="store_true", help="Share the host IPC namespace")
     parser.add_argument("--large-shm", action="store_true", help="Request a larger /dev/shm")
     return parser
@@ -174,7 +181,7 @@ def build_runai_command(
 
     if args.node_type:
         cmd.extend(["--node-pools", ','.join(args.node_type)])
-        if any(i in {"h200", "h100"} for i in args.node_type) and not args.train:
+        if any(i in {"b300", "h200", "h100"} for i in args.node_type) and not args.train:
             cmd.append("--preemptible")
             
     if distributed:

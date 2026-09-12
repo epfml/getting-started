@@ -5,7 +5,7 @@ This repository contains the basic steps to start running scripts and notebooks 
 ## Overview
 
 The RCP cluster provides:
-- **GPUs**: A100 (40GB/80GB), H100 (80GB), H200 (140GB), V100
+- **GPUs**: B300, A100 (40GB/80GB), H100 (80GB), H200 (140GB), V100
 - **Stack**: [Docker](https://www.docker.com) (containers), [Kubernetes](https://kubernetes.io) (orchestration), [run:ai](https://run.ai) (scheduler)
 
 ## Getting Help
@@ -349,7 +349,10 @@ python csub.py -n dev-gpu -g 1
 python csub.py -n experiment --train -g 4 --command "cd /mloscratch/homes/user/code; python train.py"
 
 # Use specific GPU type
-python csub.py -n my-job -g 2 --node-type h100 --train --command "..."
+python csub.py -n my-job -g 2 --node-type b300 --train --command "..."
+
+# Allow several GPU pools, in preference order
+python csub.py -n my-job -g 2 --node-type b300 h200 h100 --train --command "..."
 
 # Dry run (see command without executing)
 python csub.py -n test --dry --command "..."
@@ -365,13 +368,17 @@ python csub.py -n test --dry --command "..."
 | `-c`, `--command` | Command to run | `sleep <duration>` |
 | `--train` | Submit as training workload (non-interactive) | Interactive mode |
 | `-i`, `--image` | Docker image | From `RUNAI_IMAGE` in `.env` |
-| `--node-type` | GPU type: `v100`, `h100`, `h200`, `default`, `a100-40g` | `default` (A100) |
+| `--node-type` | One or more cluster node-pool names, e.g. `b300`, `h200`, `h100`, `default` (A100), `a100-40g`, `v100` | Platform default (no explicit pool) |
 | `--cpus` | Number of CPUs | Platform default |
 | `--memory` | CPU memory request | Platform default |
 | `-p`, `--port` | Expose container port (for Jupyter, etc.) | None |
 | `--large-shm` | Request larger `/dev/shm` | False |
 | `--host-ipc` | Share host IPC namespace | False |
 | `--backofflimit` | Retries before marking training job failed | `0` |
+
+Pool names are passed directly to run:ai, so newly added pools work without updating `csub.py`.
+Use the exact names configured on the cluster; run:ai validates their availability and your access.
+Interactive jobs targeting `b300`, `h200`, or `h100` are submitted as preemptible.
 
 ### Secret Management
 

@@ -102,10 +102,10 @@ When choosing GPU types on the RCP cluster, consider both **cost** and **memory/
 | **H200** | 140GB | Very memory-intensive workloads | Highest cost |
 
 **Usage:**
-- With `csub.py`: Use `--node_type` flag (e.g., `--node_type default` for A100)
+- With `csub.py`: Use `--node-type` (e.g., `--node-type b300`, or `--node-type default` for A100). Multiple pools can be listed in preference order: `--node-type b300 h200 h100`.
 - With CLI directly: Use `--node-pools` flag
 
-**Options:** `v100`, `h100`, `h200`, `default` (A100), `a100-40g`
+**Pool names:** Any pool configured on the cluster is supported, including `b300`, `h200`, `h100`, `default` (A100), `a100-40g`, and `v100`. Names are passed directly to run:ai for validation; omit `--node-type` to use the platform default. Interactive jobs targeting `b300`, `h200`, or `h100` are preemptible.
 
 > [!TIP]
 > If you plan to run a series of jobs, especially with high-end GPUs like H100/H200, inform your supervisor in advance.
