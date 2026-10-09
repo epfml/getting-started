@@ -117,17 +117,65 @@ curl -o ~/.kube/config https://raw.githubusercontent.com/epfml/getting-started/m
 
 Download and install the run:ai CLI:
 
+1. Go to the [EPFL Run:ai website](https://rcpepfl.run.ai/).
+
+2. Click the `?` icon in the top-right corner.
+
+   <img width="673" height="479" alt="Screenshot 2026-05-20 at 2 42 05 p m" src="https://github.com/user-attachments/assets/c4582e9e-12d3-4d5e-ab03-36076b359ae5" />
+
+3. Select your operating system.
+
+   <img width="876" height="401" alt="Screenshot 2026-05-20 at 2 42 29 p m" src="https://github.com/user-attachments/assets/c10702b0-0b47-415f-a59c-a3e3cde527a6" />
+
+4. Copy and run the installation command shown there, replacing the authorization header with your own token. For example on macOS:
+
+   ```bash
+   bash -c "$(curl -fsSL https://rcpepfl.run.ai/api/v1/cli-exposer/installer/mac \
+     -H '<authorization bearer>')"
+   ```
+
+5. Accept the prompts during installation.
+
+6. Reload your shell configuration:
+
+   ```bash
+   source ~/.zshrc
+   # or, if you use bash:
+   source ~/.bashrc
+   ```
+
+#### If `runai` is still not found
+
+Sometimes the installer does not add the binary location to your `PATH` correctly.
+
+During installation, look for a line like:
+
 ```bash
-# macOS with Apple Silicon
-wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/darwin
+## Installing...
+ ▸ Preparing directory      (/Users/<your_name>/.runai/bin/2.116.2)
+ ▸ Downloading binary       (https://rcpepfl.run.ai/api/v1/cli-exposer/dist/darwin/arm64/runai)
+ ▸ Linking executable       (/Users/<your_name>/.runai/bin/runai)
+```
 
-# Linux (replace 'darwin' with 'linux')
-# wget --content-disposition https://rcp-caas-prod.rcp.epfl.ch/cli/linux
+The important part is the parent directory of the linked executable, for example:
 
-# Install
-chmod +x ./runai
-sudo mv ./runai /usr/local/bin/runai
-sudo chown root: /usr/local/bin/runai
+```text
+/Users/<your_name>/.runai/bin
+```
+
+Add that directory to your shell config file:
+
+```bash
+echo 'export PATH="$PATH:/Users/<your_name>/.runai/bin"' >> ~/.zshrc
+# or ~/.bashrc if you use bash
+```
+
+Then reload your shell again:
+
+```bash
+source ~/.zshrc
+# or
+source ~/.bashrc
 ```
 
 ### 3. Login to the Cluster
