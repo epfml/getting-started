@@ -143,24 +143,24 @@ def ensure_secret(env_path: Path, namespace: str, secret_name: str) -> None:
         sys.exit(f"kubectl failed to apply the secret:\n{exc.stderr}")
 
 
-def add_env_flags(cmd: List[str], values: Dict[str, str]) -> None:
+def add_env_flags(cmd: List[str], values: Dict[str, str], secret_name: str, extra_secret_keys: Iterable[str]) -> None:
+    secret_keys = set(SECRET_KEYS).union(k.strip() for k in extra_secret_keys if k.strip())
+    ignore_keys = {
+        "LDAP_UID",  # set automatically
+        "LDAP_GID",  # set automatically
+        # csub-only control/config values not meant for the container environment
+        "EXTRA_SECRET_KEYS",
+        "GITHUB_SSH_KEY_PATH",
+        "GITHUB_SSH_PUBLIC_KEY_PATH",
+    }
     for key, value in values.items():
-        if value == "":
+        if value == "" or key in ignore_keys:
             continue
-        cmd.extend(["--environment", f"{key}={value}"])
 
-
-def add_secret_env_flags(
-    cmd: List[str],
-    env: Dict[str, str],
-    secret_name: str,
-    extra_secret_keys: Iterable[str],
-) -> None:
-    keys = set(SECRET_KEYS).union(k.strip() for k in extra_secret_keys if k.strip())
-    for key in sorted(keys):
-        if key not in env or env[key] == "":
-            continue
-        cmd.extend(["--environment", f"{key}=SECRET:{secret_name},{key}"])
+        if key in secret_keys:
+            cmd.extend(["--environment", f"{key}=SECRET:{secret_name},{key}"])
+        else:
+            cmd.extend(["--environment", f"{key}={value}"])
 
 
 __all__ = [
