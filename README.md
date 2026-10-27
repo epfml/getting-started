@@ -1,6 +1,6 @@
 # MLO: Getting Started with the EPFL RCP Cluster
 
-This repository contains the basic steps to start running scripts and notebooks on the EPFL RCP cluster. We provide scripts that make your life easier by automating most of the boilerplate. The setup is loosely based on infrastructure from TML/CLAIRE and earlier scripts by Atli.
+EPFL currently has two compute clusters, RCP and scitas, and you can access both. For the latter, see [scitas](https://scitas-doc.epfl.ch/) (slurm based). The repository here contains the basic steps to start running scripts and notebooks on the EPFL RCP cluster. We provide scripts that make your life easier by automating most of the boilerplate. The setup is loosely based on infrastructure from TML/CLAIRE and earlier scripts by Atli.
 
 ## Overview
 
